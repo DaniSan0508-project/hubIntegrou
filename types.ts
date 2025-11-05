@@ -154,3 +154,20 @@ export interface Interruption {
   start: string; // ISO 8601 Date String
   end: string;   // ISO 8601 Date String
 }
+
+// --- Analytics Types ---
+export interface DailySale {
+  date: string;
+  total: number;
+}
+
+export interface StatusCounts {
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface SalesAnalyticsData {
+  dailySales: DailySale[];
+  statusCounts: StatusCounts;
+}

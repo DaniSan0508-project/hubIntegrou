@@ -6,6 +6,7 @@ import { RefreshIcon, FilterIcon, ChevronRightIcon } from './Icons';
 import { ORDER_STATUS_MAP, NEXT_ACTION_MAP } from '../constants';
 import PaginationControls from './PaginationControls';
 import LoadingSpinner from './LoadingSpinner';
+import SalesAnalytics from './SalesAnalytics';
 
 interface OrderListProps {
   onSelectOrder: (orderId: string) => void;
@@ -400,7 +401,9 @@ const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
 
   return (
     <div className="p-2 sm:p-4">
-        <div className="flex justify-between items-center mb-4 px-2">
+        <SalesAnalytics />
+
+        <div className="flex justify-between items-center mb-4 px-2 mt-4">
             <h2 className="text-lg font-semibold text-gray-700">Pedidos ({pagination?.total ?? orders.length})</h2>
             <div className="flex items-center space-x-2">
                 <button 

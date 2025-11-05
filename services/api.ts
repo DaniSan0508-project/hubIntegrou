@@ -1,5 +1,5 @@
 // services/api.ts
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData } from '../types';
 
 const BASE_URL = 'http://localhost:8104/api';
 const TOKEN_KEY = 'hubdelivery_token';
@@ -202,6 +202,23 @@ const transformInterruptionsFromApi = (apiInterruptions: any): Interruption[] =>
         start: item.start,
         end: item.end,
     }));
+};
+
+const transformAnalyticsFromApi = (apiData: any): SalesAnalyticsData => {
+    const data = apiData.data || {};
+    return {
+        dailySales: Array.isArray(data.daily_sales) 
+            ? data.daily_sales.map((d: any) => ({
+                date: d.date,
+                total: parseFloat(d.total_sales) || 0
+              }))
+            : [],
+        statusCounts: {
+            confirmed: data.status_counts?.confirmed || 0,
+            completed: data.status_counts?.completed || 0,
+            cancelled: data.status_counts?.cancelled || 0,
+        },
+    };
 };
 
 
@@ -423,6 +440,15 @@ export const api = {
 
         // The component will handle the state update optimistically.
         return;
+    },
+    
+    getSalesAnalytics: async (dateFrom: string, dateTo: string): Promise<SalesAnalyticsData> => {
+        const params = new URLSearchParams();
+        params.append('date_from', dateFrom);
+        params.append('date_to', dateTo);
+        const url = `/erp/orders/analytics?${params.toString()}`;
+        const data = await fetchWithAuth(url);
+        return transformAnalyticsFromApi(data);
     },
 
     // --- Product Management API ---
