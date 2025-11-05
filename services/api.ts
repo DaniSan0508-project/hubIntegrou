@@ -35,7 +35,7 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
         case 'CONFIRMED':
         case 'COM':
             return OrderStatus.COM;
-        case 'SEPARATION_ STARTED':
+        case 'SEPARATION_STARTED':
         case 'SPS':
             return OrderStatus.SPS;
         case 'SEPARATION_ENDED':
