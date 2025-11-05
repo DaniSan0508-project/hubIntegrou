@@ -1,8 +1,19 @@
 // FIX: Add the missing 'User' interface to resolve import errors.
+export interface Tenant {
+    id: number;
+    name: string;
+    cnpj: string;
+}
+
+export interface Integrations {
+    providers: string[];
+}
 export interface User {
   id: string;
   name: string;
   email: string;
+  tenant: Tenant;
+  integrations: Integrations;
 }
 
 export enum OrderStatus {

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { User, Page, StoreStatus } from '../types';
 import OrderList from './OrderList';
@@ -83,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       case 'products':
         return <ProductPage />;
       case 'merchant':
-        return <StorePage />; 
+        return <StorePage user={user} />; 
       default:
         return <OrderList onSelectOrder={handleSelectOrder} />;
     }
@@ -93,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     <div className="flex flex-col h-screen bg-gray-50">
       <header className="bg-white shadow-md p-4 flex justify-between items-center z-10 sticky top-0">
         <div>
-            <h1 className="text-xl font-bold text-gray-800">HubIntegrou</h1>
+            <h1 className="text-xl font-bold text-gray-800 truncate" title={user.tenant.name}>{user.tenant.name}</h1>
             <p className="text-sm text-gray-500">Olá, {user.name}</p>
             <div className="mt-1">
                 <StoreStatusIndicator status={storeStatus} isLoading={isStatusLoading} />

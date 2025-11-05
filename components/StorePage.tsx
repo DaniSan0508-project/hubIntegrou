@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StoreStatus, OpeningHour, Interruption } from '../types';
+import { StoreStatus, OpeningHour, Interruption, User } from '../types';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import OpeningHoursModal from './OpeningHoursModal';
 import InterruptionsModal from './InterruptionsModal';
-import { RefreshIcon, StoreIcon, ClockIcon, CalendarIcon, EditIcon, WarningIcon, PlusCircleIcon, TrashIcon } from './Icons';
+import { RefreshIcon, ClockIcon, CalendarIcon, EditIcon, PlusCircleIcon, TrashIcon } from './Icons';
+
+interface StorePageProps {
+    user: User;
+}
 
 const dayOfWeekMap: Record<OpeningHour['dayOfWeek'], string> = {
     SUNDAY: 'Domingo',
@@ -21,7 +25,7 @@ const formatDateTime = (dateString: string) => {
     return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).replace(',', ' -');
 };
 
-const StorePage: React.FC = () => {
+const StorePage: React.FC<StorePageProps> = ({ user }) => {
     const [status, setStatus] = useState<StoreStatus | null>(null);
     const [openingHours, setOpeningHours] = useState<OpeningHour[]>([]);
     const [interruptions, setInterruptions] = useState<Interruption[]>([]);
@@ -31,7 +35,14 @@ const StorePage: React.FC = () => {
     const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
     const [isInterruptionsModalOpen, setIsInterruptionsModalOpen] = useState(false);
 
+    const hasIfoodIntegration = user.integrations?.providers.includes('ifood');
+
     const fetchData = useCallback(async () => {
+        if (!hasIfoodIntegration) {
+            setIsLoading({ status: false, hours: false, interruptions: false });
+            return;
+        }
+
         setIsLoading({ status: true, hours: true, interruptions: true });
         setError(null);
         try {
@@ -46,7 +57,7 @@ const StorePage: React.FC = () => {
         } catch (err: any) {
             setError(err.message || 'Falha ao carregar dados da loja.');
         }
-    }, []);
+    }, [hasIfoodIntegration]);
 
     useEffect(() => {
         fetchData();
@@ -68,119 +79,142 @@ const StorePage: React.FC = () => {
     });
 
     const statusMap = {
-        OK: { text: 'Online', color: 'bg-green-100 text-green-800', icon: <StoreIcon className="text-green-600" /> },
-        WARNING: { text: 'Alerta', color: 'bg-yellow-100 text-yellow-800', icon: <WarningIcon className="text-yellow-600" /> },
-        ERROR: { text: 'Offline', color: 'bg-red-100 text-red-800', icon: <StoreIcon className="text-red-600" /> },
+        OK: { text: 'Online', color: 'bg-green-100 text-green-800' },
+        WARNING: { text: 'Alerta', color: 'bg-yellow-100 text-yellow-800' },
+        ERROR: { text: 'Offline', color: 'bg-red-100 text-red-800' },
     };
 
     return (
         <div className="p-2 sm:p-4 space-y-4">
             <div className="flex justify-between items-center mb-4 px-2">
-                <h2 className="text-lg font-semibold text-gray-700">Gerenciamento da Loja</h2>
-                <button onClick={fetchData} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar dados da loja">
-                    <RefreshIcon className={Object.values(isLoading).some(Boolean) ? 'animate-spin' : ''} />
-                </button>
+                <h2 className="text-lg font-semibold text-gray-700">Gerenciamento de Integrações</h2>
+                {hasIfoodIntegration && (
+                    <button onClick={fetchData} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar dados da loja">
+                        <RefreshIcon className={Object.values(isLoading).some(Boolean) ? 'animate-spin' : ''} />
+                    </button>
+                )}
             </div>
             
             {error && <div className="p-4 text-center text-red-500 bg-red-50 rounded-lg">{error}</div>}
 
-            {/* Status Card */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-700 flex items-center">
-                       Status da Loja (iFood)
-                    </h3>
-                    {isLoading.status ? <LoadingSpinner size="sm" /> : status && (
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusMap[status.state].color}`}>
-                            {statusMap[status.state].text}
-                        </span>
-                    )}
-                </div>
-                {isLoading.status ? <div className="text-center py-4 text-gray-500">Carregando...</div> : status ? (
-                    <div>
-                        {status.problems.length > 0 && (
-                            <div className="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400">
-                                <h4 className="font-semibold text-yellow-800">Problemas Detectados:</h4>
-                                <ul className="list-disc list-inside text-sm text-yellow-700">
-                                    {status.problems.map((p, i) => <li key={i}>{p.description}</li>)}
-                                </ul>
+            {hasIfoodIntegration ? (
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border">
+                    {/* iFood Card Header */}
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
+                        <div className="flex items-center">
+                             <img src="https://logodownload.org/wp-content/uploads/2017/05/ifood-logo-0.png" alt="iFood Logo" className="h-8 mr-4"/>
+                             <div>
+                                <h3 className="font-bold text-xl text-gray-800">iFood</h3>
+                                <p className="text-sm text-gray-500 truncate">{user.tenant.name}</p>
                             </div>
-                        )}
-                         {status.problems.length === 0 && status.state === 'OK' && (
-                            <p className="text-sm text-gray-600 mt-2">Nenhum problema detectado. A loja está operando normalmente no iFood.</p>
+                        </div>
+                        {isLoading.status ? <LoadingSpinner size="sm" /> : status && (
+                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusMap[status.state].color}`}>
+                                {statusMap[status.state].text}
+                            </span>
                         )}
                     </div>
-                ) : <p className="text-center py-4 text-gray-500">Não foi possível carregar o status.</p>}
-            </div>
 
-            {/* Opening Hours Card */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-700 flex items-center"><ClockIcon className="mr-2" /> Horários de Funcionamento</h3>
-                    <button onClick={() => setIsHoursModalOpen(true)} className="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50 text-sm font-semibold flex items-center">
-                        <EditIcon className="mr-1" /> Editar
-                    </button>
-                </div>
-                 {isLoading.hours ? <div className="text-center py-4 text-gray-500">Carregando...</div> : sortedOpeningHours.length > 0 ? (
-                    <ul className="space-y-2 mt-3">
-                        {sortedOpeningHours.map(h => (
-                             <li key={h.dayOfWeek} className="flex justify-between items-center p-2 bg-gray-50 rounded-md text-sm">
-                                <span className="font-medium text-gray-800">{dayOfWeekMap[h.dayOfWeek]}</span>
-                                <span className="text-gray-600">{h.start} - {h.end}</span>
-                            </li>
-                        ))}
-                    </ul>
-                ) : <p className="text-center py-4 text-gray-500">Nenhum horário de funcionamento definido.</p>}
-            </div>
-
-            {/* Interruptions Card */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                 <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-700 flex items-center"><CalendarIcon className="mr-2" /> Interrupções Agendadas</h3>
-                     <button onClick={() => setIsInterruptionsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-lg text-sm flex items-center">
-                        <PlusCircleIcon className="mr-1 h-5 w-5"/> Agendar Nova
-                    </button>
-                </div>
-                 {isLoading.interruptions ? <div className="text-center py-4 text-gray-500">Carregando...</div> : interruptions.length > 0 ? (
-                    <ul className="space-y-2 mt-3">
-                        {interruptions.map(i => (
-                             <li key={i.id} className="p-3 bg-red-50 rounded-md text-sm border-l-4 border-red-300">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-semibold text-red-800">{i.description}</p>
-                                        <p className="text-red-700">
-                                            <span className="font-medium">De:</span> {formatDateTime(i.start)} <br/>
-                                            <span className="font-medium">Até:</span> {formatDateTime(i.end)}
-                                        </p>
-                                    </div>
-                                    <button onClick={() => handleDeleteInterruption(i.id)} className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100">
-                                        <TrashIcon />
-                                    </button>
+                    {/* iFood Card Body */}
+                    <div className="space-y-6">
+                        {/* Status Details Section */}
+                        <div>
+                            <h4 className="font-semibold text-gray-700 mb-2">Status da Integração</h4>
+                            {isLoading.status ? <p className="text-sm text-gray-500">Carregando status...</p> : status ? (
+                                <div>
+                                    {status.problems.length > 0 ? (
+                                        <div className="p-3 bg-yellow-50 border-l-4 border-yellow-400">
+                                            <h5 className="font-semibold text-yellow-800">Problemas Detectados:</h5>
+                                            <ul className="list-disc list-inside text-sm text-yellow-700">
+                                                {status.problems.map((p, i) => <li key={i}>{p.description}</li>)}
+                                            </ul>
+                                        </div>
+                                    ) : status.state === 'OK' && (
+                                        <p className="text-sm text-gray-600">Nenhum problema detectado. A loja está operando normalmente no iFood.</p>
+                                    )}
                                 </div>
-                            </li>
-                        ))}
-                    </ul>
-                ) : <p className="text-center py-4 text-gray-500">Nenhuma interrupção agendada.</p>}
-            </div>
+                            ) : <p className="text-sm text-gray-500">Não foi possível carregar o status.</p>}
+                        </div>
 
-            <OpeningHoursModal
-                isOpen={isHoursModalOpen}
-                onClose={() => setIsHoursModalOpen(false)}
-                initialHours={openingHours}
-                onSaveSuccess={() => {
-                    setIsHoursModalOpen(false);
-                    fetchData(); // Refresh data on success
-                }}
-            />
+                        {/* Opening Hours Section */}
+                        <div className="border-t pt-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold text-gray-700 flex items-center"><ClockIcon className="mr-2 text-gray-400" /> Horários de Funcionamento</h4>
+                                <button onClick={() => setIsHoursModalOpen(true)} className="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50 text-sm font-semibold flex items-center">
+                                    <EditIcon className="mr-1 h-4 w-4" /> Editar
+                                </button>
+                            </div>
+                             {isLoading.hours ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : sortedOpeningHours.length > 0 ? (
+                                <ul className="space-y-2 mt-3">
+                                    {sortedOpeningHours.map(h => (
+                                         <li key={h.dayOfWeek} className="flex justify-between items-center p-2 bg-gray-50 rounded-md text-sm">
+                                            <span className="font-medium text-gray-800">{dayOfWeekMap[h.dayOfWeek]}</span>
+                                            <span className="text-gray-600 font-mono">{h.start} - {h.end}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : <p className="text-center py-4 text-gray-500">Nenhum horário definido.</p>}
+                        </div>
+
+                        {/* Interruptions Section */}
+                        <div className="border-t pt-6">
+                             <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold text-gray-700 flex items-center"><CalendarIcon className="mr-2 text-gray-400" /> Interrupções Agendadas</h4>
+                                 <button onClick={() => setIsInterruptionsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-lg text-sm flex items-center">
+                                    <PlusCircleIcon className="mr-1 h-5 w-5"/> Agendar Nova
+                                </button>
+                            </div>
+                             {isLoading.interruptions ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : interruptions.length > 0 ? (
+                                <ul className="space-y-2 mt-3">
+                                    {interruptions.map(i => (
+                                         <li key={i.id} className="p-3 bg-red-50 rounded-md text-sm border-l-4 border-red-300">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold text-red-800">{i.description}</p>
+                                                    <p className="text-red-700 font-mono text-xs">
+                                                        <span className="font-medium">De:</span> {formatDateTime(i.start)} <br/>
+                                                        <span className="font-medium">Até:</span> {formatDateTime(i.end)}
+                                                    </p>
+                                                </div>
+                                                <button onClick={() => handleDeleteInterruption(i.id)} className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100">
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : <p className="text-center py-4 text-gray-500">Nenhuma interrupção agendada.</p>}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center py-10">
+                    <p className="text-gray-500">Nenhuma integração iFood encontrada para esta loja.</p>
+                </div>
+            )}
             
-            <InterruptionsModal
-                isOpen={isInterruptionsModalOpen}
-                onClose={() => setIsInterruptionsModalOpen(false)}
-                onSaveSuccess={() => {
-                    setIsInterruptionsModalOpen(false);
-                    fetchData(); // Refresh data on success
-                }}
-            />
+            {hasIfoodIntegration && (
+                <>
+                    <OpeningHoursModal
+                        isOpen={isHoursModalOpen}
+                        onClose={() => setIsHoursModalOpen(false)}
+                        initialHours={openingHours}
+                        onSaveSuccess={() => {
+                            setIsHoursModalOpen(false);
+                            fetchData(); // Refresh data on success
+                        }}
+                    />
+                    
+                    <InterruptionsModal
+                        isOpen={isInterruptionsModalOpen}
+                        onClose={() => setIsInterruptionsModalOpen(false)}
+                        onSaveSuccess={() => {
+                            setIsInterruptionsModalOpen(false);
+                            fetchData(); // Refresh data on success
+                        }}
+                    />
+                </>
+            )}
         </div>
     );
 };

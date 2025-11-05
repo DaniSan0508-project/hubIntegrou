@@ -126,11 +126,23 @@ const transformOrderFromApi = (apiEntry: any): Order => {
   };
 };
 
-const transformUserFromApi = (apiUser: any): User => {
+const transformUserFromApi = (apiResponse: any): User => {
+    const apiUser = apiResponse.user || {};
+    const apiTenant = apiResponse.tenant || {};
+    const apiIntegrations = apiResponse.integrations || { providers: [] };
+
     return {
         id: apiUser.id,
         name: apiUser.name,
         email: apiUser.email,
+        tenant: {
+            id: apiTenant.id,
+            name: apiTenant.name || 'Nome da Loja Indisponível',
+            cnpj: apiTenant.cnpj,
+        },
+        integrations: {
+            providers: Array.isArray(apiIntegrations.providers) ? apiIntegrations.providers : [],
+        },
     };
 };
 
@@ -244,9 +256,8 @@ export const api = {
         const token = data.token;
         if (token) {
             setToken(token);
-            // The login response already contains user data, but we call getMe for consistency
-            // and to ensure the user object format is the one we expect from our dedicated endpoint.
-            return transformUserFromApi(data.user);
+            // After setting the token, call getMe to fetch the full, detailed user object.
+            return await api.getMe();
         } else {
             throw new Error('Token não recebido do servidor.');
         }
@@ -261,8 +272,8 @@ export const api = {
         if (!getToken()) {
             return Promise.reject(new Error('Não autenticado'));
         }
-        const data = await fetchWithAuth('/token/me');
-        return transformUserFromApi(data.user || data);
+        const data = await fetchWithAuth('/portal/me');
+        return transformUserFromApi(data);
     },
 
     getOrders: async (filters: OrderFilters = {}): Promise<PaginatedOrders> => {
