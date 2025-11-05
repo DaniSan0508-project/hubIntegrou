@@ -1,19 +1,69 @@
-import React, { useState } from 'react';
-import { User, Page } from '../types';
+
+import React, { useState, useEffect } from 'react';
+import { User, Page, StoreStatus } from '../types';
 import OrderList from './OrderList';
 import OrderDetail from './OrderDetail';
 import ProductPage from './ProductPage';
-import StorePage from './StorePage'; // Import the new StorePage component
+import StorePage from './StorePage'; 
 import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon } from './Icons';
+import { api } from '../services/api';
 
 interface DashboardProps {
   user: User;
   onLogout: () => void;
 }
 
+const StoreStatusIndicator: React.FC<{ status: StoreStatus['state'] | null; isLoading: boolean }> = ({ status, isLoading }) => {
+    if (isLoading) {
+        return (
+            <div className="flex items-center text-xs text-gray-400 animate-pulse">
+                <span className="h-2 w-2 mr-1.5 bg-gray-300 rounded-full"></span>
+                Verificando status...
+            </div>
+        );
+    }
+
+    if (!status) return null;
+
+    const statusMap = {
+        OK: { text: 'Loja Online', color: 'bg-green-500', textColor: 'text-gray-600' },
+        WARNING: { text: 'Loja com Alerta', color: 'bg-yellow-500', textColor: 'text-yellow-800' },
+        ERROR: { text: 'Loja Offline', color: 'bg-red-500', textColor: 'text-red-700' },
+    };
+    
+    const { text, color, textColor } = statusMap[status];
+
+    return (
+         <div className={`flex items-center text-xs font-medium ${textColor}`}>
+            <span className={`h-2 w-2 mr-1.5 rounded-full ${color}`}></span>
+            {text}
+        </div>
+    );
+};
+
+
 const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activePage, setActivePage] = useState<Page>('orders');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [storeStatus, setStoreStatus] = useState<StoreStatus['state'] | null>(null);
+  const [isStatusLoading, setIsStatusLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      setIsStatusLoading(true);
+      try {
+        const statusData = await api.getStoreStatus();
+        setStoreStatus(statusData.state);
+      } catch (error) {
+        console.error("Failed to fetch store status:", error);
+        setStoreStatus('ERROR'); // Assume offline if fetch fails
+      } finally {
+        setIsStatusLoading(false);
+      }
+    };
+
+    fetchStatus();
+  }, [activePage]);
 
   const handleSelectOrder = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -33,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       case 'products':
         return <ProductPage />;
       case 'merchant':
-        return <StorePage />; // Render the new StorePage component
+        return <StorePage />; 
       default:
         return <OrderList onSelectOrder={handleSelectOrder} />;
     }
@@ -45,6 +95,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         <div>
             <h1 className="text-xl font-bold text-gray-800">HubIntegrou</h1>
             <p className="text-sm text-gray-500">Olá, {user.name}</p>
+            <div className="mt-1">
+                <StoreStatusIndicator status={storeStatus} isLoading={isStatusLoading} />
+            </div>
         </div>
         <button onClick={onLogout} className="text-gray-500 hover:text-red-500" aria-label="Sair">
           <LogoutIcon />
