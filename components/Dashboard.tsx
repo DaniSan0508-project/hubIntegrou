@@ -145,7 +145,7 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, isActive, onClick })
         onClick={onClick}
         className={`flex flex-col items-center justify-center w-24 h-16 rounded-lg transition-colors duration-200 ${isActive ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:bg-gray-100'}`}
     >
-        <div className="w-6 h-6 mb-1">{icon}</div>
+        <div className="w-5 h-5 mb-1">{icon}</div>
         <span className="text-xs font-medium">{label}</span>
     </button>
 );

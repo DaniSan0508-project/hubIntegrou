@@ -48,10 +48,20 @@ const OrderCard: React.FC<{
             onActionClick(order, nextAction.nextStatus);
         }
     };
+
+    const handleCardClick = () => {
+        if (order.localId && order.localId !== 'missing-local-id') {
+            onSelect(order.localId);
+        } else {
+            console.error("Cannot select order without a valid localId:", order);
+            // Optionally, show an alert to the user.
+            alert("Não é possível ver os detalhes deste pedido (ID local ausente).");
+        }
+    };
     
     return (
     <li
-        onClick={() => onSelect(order.id)}
+        onClick={handleCardClick}
         className={`rounded-lg shadow-sm hover:shadow-md transition-all duration-500 cursor-pointer border overflow-hidden flex flex-col ${isJustUpdated ? 'bg-green-50 border-green-400' : isNew ? 'bg-white border-green-500 border-2' : 'bg-white border-gray-200'}`}
     >
         <div className="p-4 flex-grow">

@@ -41,6 +41,12 @@ export interface OrderItem {
   price: number;
   total: number;
   uniqueId: string;
+  ean?: string;
+}
+
+export interface OrderFee {
+    type: string;
+    amount: number;
 }
 
 export interface Order {
@@ -55,6 +61,11 @@ export interface Order {
   deliveryAddress: string;
   paymentMethod: string;
   deliveryProvider: 'TAKEOUT' | 'IFOOD' | 'MERCHANT' | 'UNKNOWN';
+  deliveryCode?: string;
+  pickupCode?: string;
+  subtotal?: number;
+  deliveryFee?: number;
+  otherFees?: OrderFee[];
 }
 
 export type Page = 'orders' | 'products' | 'merchant';

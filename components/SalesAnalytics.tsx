@@ -116,7 +116,7 @@ const SalesAnalytics: React.FC = () => {
                     Análise de Vendas
                 </h3>
                  <button className="text-gray-500 hover:text-indigo-600 p-1 rounded-full">
-                    {isOpen ? <ChevronUpIcon className="h-6 w-6" /> : <ChevronDownIcon className="h-6 w-6" />}
+                    {isOpen ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
                 </button>
             </div>
             

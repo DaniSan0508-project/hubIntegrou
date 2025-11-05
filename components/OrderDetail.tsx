@@ -3,7 +3,7 @@ import { Order } from '../types';
 import { api } from '../services/api';
 import StatusBadge from './StatusBadge';
 import { NEXT_ACTION_MAP } from '../constants';
-import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon } from './Icons';
+import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon } from './Icons';
 import LoadingSpinner from './LoadingSpinner';
 
 interface OrderDetailProps {
@@ -85,27 +85,73 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
 
       <div className="p-4 space-y-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><UserIcon className="mr-2" /> Cliente e Entrega</h3>
+            <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><UserIcon className="mr-2 h-4 w-4" /> Cliente e Entrega</h3>
             <p className="font-bold text-gray-900">{order.customerName}</p>
-            <p className="text-sm text-gray-600 flex items-start"><MapPinIcon className="mr-2 mt-1 flex-shrink-0" /> {order.deliveryAddress}</p>
+            <p className="text-sm text-gray-600 flex items-start"><MapPinIcon className="mr-2 mt-1 flex-shrink-0 h-4 w-4" /> {order.deliveryAddress}</p>
         </div>
 
+        {(order.deliveryCode || order.pickupCode) && (
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><QrCodeIcon className="mr-2 h-5 w-5 text-gray-400" /> Códigos de Entrega</h3>
+                {order.deliveryCode && (
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Código de Entrega:</span>
+                        <span className="font-bold font-mono text-gray-900">{order.deliveryCode}</span>
+                    </div>
+                )}
+                {order.pickupCode && (
+                    <div className="flex justify-between items-center text-sm mt-2">
+                        <span className="text-gray-600">Código de Retirada:</span>
+                        <span className="font-bold font-mono text-gray-900">{order.pickupCode}</span>
+                    </div>
+                )}
+            </div>
+        )}
+
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><CreditCardIcon className="mr-2" /> Pagamento</h3>
-            <p className="text-sm text-gray-600">{order.paymentMethod}</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}</p>
+            <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><CreditCardIcon className="mr-2 h-4 w-4" /> Pagamento</h3>
+             <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                    <span className="text-gray-600">Método:</span>
+                    <span className="font-medium text-gray-800">{order.paymentMethod}</span>
+                </div>
+                {order.subtotal !== undefined && (
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Subtotal dos Itens:</span>
+                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.subtotal)}</span>
+                    </div>
+                )}
+                {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Taxa de Entrega:</span>
+                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}</span>
+                    </div>
+                )}
+                {order.otherFees?.map((fee, index) => (
+                    <div key={index} className="flex justify-between">
+                        <span className="text-gray-600 capitalize">{fee.type.toLowerCase().replace(/_/g, ' ')}:</span>
+                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(fee.amount)}</span>
+                    </div>
+                ))}
+            </div>
+            <hr className="my-3"/>
+            <div className="flex justify-between items-center">
+                <span className="font-bold text-lg text-gray-900">Total do Pedido</span>
+                <span className="text-lg font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}</span>
+            </div>
         </div>
         
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <h3 className="font-semibold text-gray-700 mb-3">Itens do Pedido</h3>
           <ul className="divide-y divide-gray-200">
             {order.items.map(item => (
-              <li key={item.uniqueId} className="py-3 flex justify-between items-center">
+              <li key={item.uniqueId} className="py-3 flex justify-between items-start">
                 <div>
                   <p className="font-medium text-gray-800">{item.name}</p>
                   <p className="text-sm text-gray-500">{item.quantity} x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}</p>
+                  {item.ean && <p className="text-xs text-gray-400 font-mono mt-1">EAN: {item.ean}</p>}
                 </div>
-                <p className="font-semibold text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total)}</p>
+                <p className="font-semibold text-gray-800 text-right flex-shrink-0 ml-4">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total)}</p>
               </li>
             ))}
           </ul>

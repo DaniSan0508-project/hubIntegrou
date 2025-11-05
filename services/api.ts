@@ -1,5 +1,5 @@
 // services/api.ts
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee } from '../types';
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
@@ -155,33 +155,97 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
 
 // Converts API snake_case and nested responses to frontend-friendly camelCase
 const transformOrderFromApi = (apiEntry: any): Order => {
-  const apiOrder = apiEntry.order || apiEntry || {}; // Handle both nested and flat structures
+  const apiOrder = apiEntry.order || apiEntry || {};
   const apiConsumer = apiEntry.consumer || {};
-  const apiPayment = apiOrder.payment || (apiOrder.ifood && apiOrder.ifood.payment) || {};
+  const virtualBag = apiOrder.ifood?.virtual_bag;
 
-  // Determine the source for status and items. Prioritize the nested `ifood` object if it exists.
-  const dataSource = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
+  let items: OrderItem[] = [];
+  let total: number = 0;
+  let subtotal: number | undefined = undefined;
+  let deliveryFee: number | undefined = undefined;
+  let otherFees: OrderFee[] | undefined = undefined;
+  let paymentMethod: string = 'Não informado';
+  let deliveryCode: string | undefined = apiOrder.ifood?.delivery_code;
+  let pickupCode: string | undefined = apiOrder.ifood?.pickup_code;
+  let deliveryAddress: string = apiOrder.delivery_address || 'Endereço não informado';
 
-  const status = mapApiStatusToEnum(dataSource.status);
+  if (virtualBag) {
+    // ---- Use virtual_bag as the source of truth ----
+    items = virtualBag.bag?.items?.map((item: any): OrderItem => ({
+        uniqueId: item.uniqueId,
+        id: item.uniqueId,
+        name: item.name,
+        quantity: item.quantity,
+        price: (item.prices?.unitValue?.value || 0) / 100,
+        total: (item.prices?.grossValue?.value || 0) / 100,
+        ean: item.ean,
+    })) || [];
 
-  const items = Array.isArray(dataSource.items) ? dataSource.items.map((item: any, index: number) => {
-    const quantity = parseInt(item.quantity, 10) || 1;
-    const price = parseFloat(item.unit_price) || 0;
-    const total = quantity * price;
-    // Use EAN as a unique identifier, falling back to index for items without EAN
-    const uniqueId = item.ean || `${apiOrder.external_id || apiOrder.id}-${index}`;
+    subtotal = (virtualBag.bag?.prices?.grossValue?.value || 0) / 100;
+    deliveryFee = (virtualBag.operationMode?.delivery?.prices?.grossValue?.value || 0) / 100;
 
-    return {
-      id: uniqueId,
-      name: item.name || `Produto (EAN: ${item.ean || 'N/A'})`,
-      quantity: quantity,
-      price: price,
-      total: total,
-      uniqueId: uniqueId,
-    };
-  }) : [];
+    otherFees = virtualBag.fees?.map((fee: any): OrderFee => {
+        const feeValue = fee.values?.[0]?.amount?.value || 0;
+        const feeType = fee.values?.[0]?.type || 'Taxa';
+        return {
+            type: feeType,
+            amount: feeValue / 100,
+        };
+    }) || [];
 
-  const total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
+    const totalFromPayments = virtualBag.payment?.methods?.reduce((sum: number, method: any) => sum + (method.amount?.value || 0), 0) / 100;
+    total = totalFromPayments || (subtotal + deliveryFee + (otherFees?.reduce((sum, fee) => sum + fee.amount, 0) ?? 0));
+
+    const mainPaymentMethod = virtualBag.payment?.methods?.[0];
+    if (mainPaymentMethod) {
+        paymentMethod = mainPaymentMethod.name;
+        if (mainPaymentMethod.card?.brand) {
+            paymentMethod += ` (${mainPaymentMethod.card.brand})`;
+        }
+    }
+
+    if (virtualBag.customer?.localizer?.code) {
+        deliveryCode = virtualBag.customer.localizer.code;
+    }
+    const pickupCodeData = virtualBag.verificationCodes?.find((code: any) => code.name === 'PICKUP_CODE');
+    if (pickupCodeData) {
+        pickupCode = pickupCodeData.value;
+    }
+
+    const addr = virtualBag.customer?.billingAddress || virtualBag.operationMode?.delivery?.destination;
+    if (addr) {
+        deliveryAddress = [addr.streetName, addr.streetNumber, addr.complement, addr.district, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ');
+    }
+
+  } else {
+    // ---- Fallback to original logic ----
+    const apiPayment = apiOrder.payment || (apiOrder.ifood && apiOrder.ifood.payment) || {};
+    const dataSource = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
+
+    items = Array.isArray(dataSource.items) ? dataSource.items.map((item: any, index: number) => {
+        const quantity = parseInt(item.quantity, 10) || 1;
+        const price = parseFloat(item.unit_price) || 0;
+        const ean = item.ean || undefined;
+        // Use EAN as a unique identifier, falling back to index for items without EAN
+        const uniqueId = ean || `${apiOrder.external_id || apiOrder.id}-${index}`;
+
+        return {
+            id: uniqueId,
+            name: item.name || `Produto (EAN: ${ean || 'N/A'})`,
+            quantity: quantity,
+            price: price,
+            total: quantity * price,
+            uniqueId: uniqueId,
+            ean: ean,
+        };
+    }) : [];
+    
+    total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
+    paymentMethod = apiPayment.method || 'Não informado';
+  }
+  
+  const dataSourceForStatus = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
+  const status = mapApiStatusToEnum(dataSourceForStatus.status);
 
   const deliveryProviderStr = (apiOrder.delivery_provider || (apiOrder.ifood && apiOrder.ifood.delivery_provider) || 'UNKNOWN').toUpperCase();
   let deliveryProvider: Order['deliveryProvider'];
@@ -192,22 +256,27 @@ const transformOrderFromApi = (apiEntry: any): Order => {
 
   const localId = apiOrder.id?.toString();
   if (!localId) {
-    // Log an error because status updates will fail without a local ID.
     console.error(`Order with external_id ${apiOrder.external_id} is missing a local 'id'.`);
   }
 
   return {
-    id: apiOrder.external_id || localId || 'missing-id', // Use external_id for unique key, fallback to localId
-    localId: localId || 'missing-local-id', // The local database ID
+    id: apiOrder.external_id || localId || 'missing-id',
+    localId: localId || 'missing-local-id',
     displayId: apiOrder.short_code || (apiOrder.ifood && apiOrder.ifood.short_code) || apiOrder.id?.toString() || '#',
     customerName: apiConsumer.name || 'N/A',
     total: total,
     status: status,
-    createdAt: dataSource.created_at || new Date().toISOString(),
+    createdAt: dataSourceForStatus.created_at || new Date().toISOString(),
     items: items,
-    deliveryAddress: apiOrder.delivery_address || 'Endereço não informado', // Keep fallback
-    paymentMethod: apiPayment.method || 'Não informado',
+    deliveryAddress: deliveryAddress,
+    paymentMethod: paymentMethod,
     deliveryProvider: deliveryProvider,
+    // new fields
+    deliveryCode: deliveryCode,
+    pickupCode: pickupCode,
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    otherFees: otherFees,
   };
 };
 
@@ -481,8 +550,8 @@ export const api = {
     },
 
     getOrderById: async (id: string): Promise<Order> => {
-        // The list endpoint can be filtered by the unique external ID using the 'order_id' parameter.
-        const data = await fetchWithAuth(`/erp/orders?order_id=${id}`);
+        // The list endpoint can be filtered by the unique local ID and include virtual_bag details.
+        const data = await fetchWithAuth(`/erp/orders?order_id=${id}&include_virtual_bag=1`);
         const ordersArray = data.orders;
         if (ordersArray && ordersArray.length > 0) {
             return transformOrderFromApi(ordersArray[0]);
