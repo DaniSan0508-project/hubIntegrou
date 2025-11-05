@@ -73,7 +73,7 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
 const transformOrderFromApi = (apiEntry: any): Order => {
   const apiOrder = apiEntry.order || apiEntry || {}; // Handle both nested and flat structures
   const apiConsumer = apiEntry.consumer || {};
-  const apiPayment = apiOrder.payment || {};
+  const apiPayment = apiOrder.payment || (apiOrder.ifood && apiOrder.ifood.payment) || {};
 
   // Determine the source for status and items. Prioritize the nested `ifood` object if it exists.
   const dataSource = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
@@ -99,7 +99,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
 
   const total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
 
-  const deliveryProviderStr = (apiOrder.delivery_provider || 'UNKNOWN').toUpperCase();
+  const deliveryProviderStr = (apiOrder.delivery_provider || (apiOrder.ifood && apiOrder.ifood.delivery_provider) || 'UNKNOWN').toUpperCase();
   let deliveryProvider: Order['deliveryProvider'];
   if (deliveryProviderStr === 'TAKEOUT') deliveryProvider = 'TAKEOUT';
   else if (deliveryProviderStr === 'IFOOD') deliveryProvider = 'IFOOD';
@@ -115,11 +115,11 @@ const transformOrderFromApi = (apiEntry: any): Order => {
   return {
     id: apiOrder.external_id || localId || 'missing-id', // Use external_id for unique key, fallback to localId
     localId: localId || 'missing-local-id', // The local database ID
-    displayId: apiOrder.short_code || apiOrder.id?.toString() || '#',
+    displayId: apiOrder.short_code || (apiOrder.ifood && apiOrder.ifood.short_code) || apiOrder.id?.toString() || '#',
     customerName: apiConsumer.name || 'N/A',
     total: total,
     status: status,
-    createdAt: apiOrder.created_at || new Date().toISOString(),
+    createdAt: dataSource.created_at || new Date().toISOString(),
     items: items,
     deliveryAddress: apiOrder.delivery_address || 'Endereço não informado', // Keep fallback
     paymentMethod: apiPayment.method || 'Não informado',
@@ -203,23 +203,6 @@ const transformInterruptionsFromApi = (apiInterruptions: any): Interruption[] =>
         start: item.start,
         end: item.end,
     }));
-};
-
-const transformAnalyticsFromApi = (apiData: any): SalesAnalyticsData => {
-    const data = apiData.data || {};
-    return {
-        dailySales: Array.isArray(data.daily_sales) 
-            ? data.daily_sales.map((d: any) => ({
-                date: d.date,
-                total: parseFloat(d.total_sales) || 0
-              }))
-            : [],
-        statusCounts: {
-            confirmed: data.status_counts?.confirmed || 0,
-            completed: data.status_counts?.completed || 0,
-            cancelled: data.status_counts?.cancelled || 0,
-        },
-    };
 };
 
 
@@ -447,9 +430,54 @@ export const api = {
         const params = new URLSearchParams();
         params.append('date_from', dateFrom);
         params.append('date_to', dateTo);
-        const url = `/erp/orders/analytics?${params.toString()}`;
+        params.append('per_page', '9999'); // Fetch a large number of orders to cover the period
+
+        const url = `/erp/orders?${params.toString()}`;
         const data = await fetchWithAuth(url);
-        return transformAnalyticsFromApi(data);
+        
+        const ordersArray = data.orders || (Array.isArray(data) ? data : []);
+
+        if (!Array.isArray(ordersArray)) {
+            console.error("API response for orders is not an array for analytics:", data);
+            throw new Error("Formato de resposta inesperado do servidor para análise.");
+        }
+
+        const orders: Order[] = ordersArray.map(transformOrderFromApi);
+
+        const dailySalesMap = new Map<string, number>();
+        const statusCounts = {
+            confirmed: 0,
+            completed: 0,
+            cancelled: 0,
+        };
+        
+        const confirmedStatuses = [OrderStatus.COM, OrderStatus.SPS, OrderStatus.SPE, OrderStatus.DSP, OrderStatus.OPA];
+        const completedStatuses = [OrderStatus.CON, OrderStatus.DDCS];
+        const cancelledStatuses = [OrderStatus.CAN, OrderStatus.CAR, OrderStatus.CANCELLATION_REQUESTED];
+
+        orders.forEach(order => {
+            if (confirmedStatuses.includes(order.status)) {
+                statusCounts.confirmed++;
+            } else if (completedStatuses.includes(order.status)) {
+                statusCounts.completed++;
+                // Aggregate daily sales only for completed orders
+                const orderDate = new Date(order.createdAt.replace(' ', 'T')).toISOString().split('T')[0]; // YYYY-MM-DD
+                const currentTotal = dailySalesMap.get(orderDate) || 0;
+                dailySalesMap.set(orderDate, currentTotal + order.total);
+            } else if (cancelledStatuses.includes(order.status)) {
+                statusCounts.cancelled++;
+            }
+        });
+
+        const dailySales = Array.from(dailySalesMap.entries()).map(([date, total]) => ({
+            date,
+            total,
+        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        return {
+            dailySales,
+            statusCounts,
+        };
     },
 
     // --- Product Management API ---
