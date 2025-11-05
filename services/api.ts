@@ -1,5 +1,5 @@
 // services/api.ts
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption } from '../types';
 
 const BASE_URL = 'http://localhost:8104/api';
 const TOKEN_KEY = 'hubdelivery_token';
@@ -34,7 +34,7 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
         case 'CONFIRMED':
         case 'COM':
             return OrderStatus.COM;
-        case 'SEPARATION_STARTED':
+        case 'SEPARATION_ STARTED':
         case 'SPS':
             return OrderStatus.SPS;
         case 'SEPARATION_ENDED':
@@ -156,6 +156,40 @@ const transformNotFoundItemFromApi = (apiItem: any): NotFoundItem => {
         status: apiItem.status || 'unknown',
         createdAt: apiItem.created_at || new Date().toISOString(),
     };
+};
+
+const transformStoreStatusFromApi = (apiStatus: any): StoreStatus => {
+    // Assuming the API response for status is nested under a `data` key
+    const data = apiStatus.data || {};
+    return {
+        state: data.state || 'ERROR', // Default to ERROR if state is missing
+        problems: Array.isArray(data.problems) ? data.problems.map((p: any) => ({ description: p.description || 'Problema não descrito' })) : [],
+    };
+};
+
+const transformOpeningHoursFromApi = (apiHours: any): OpeningHour[] => {
+    // Assuming the API returns a `shifts` array
+    if (!apiHours || !Array.isArray(apiHours.shifts)) {
+        return [];
+    }
+    return apiHours.shifts.map((shift: any) => ({
+        dayOfWeek: shift.dayOfWeek,
+        // The API returns "HH:mm:ss", but we only need "HH:mm" for the time input
+        start: shift.start?.substring(0, 5) || '00:00',
+        end: shift.end?.substring(0, 5) || '00:00',
+    }));
+};
+
+const transformInterruptionsFromApi = (apiInterruptions: any): Interruption[] => {
+    if (!Array.isArray(apiInterruptions)) {
+        return [];
+    }
+    return apiInterruptions.map((item: any) => ({
+        id: item.id,
+        description: item.description,
+        start: item.start,
+        end: item.end,
+    }));
 };
 
 
@@ -451,6 +485,7 @@ export const api = {
                     barcode: p.barcode,
                     name: p.name,
                     value: p.price,
+                    // FIX: Corrected property from 'stock_quantity' to 'stock' to match the ProductToAdd type.
                     stock: p.stock,
                     status: p.status === 'active',
                 }))
@@ -484,5 +519,59 @@ export const api = {
                 }
             }
         }
+    },
+    
+    // --- Store Management API ---
+    
+    getStoreStatus: async (): Promise<StoreStatus> => {
+        const data = await fetchWithAuth('/hub/ifood/merchant/status');
+        return transformStoreStatusFromApi(data);
+    },
+
+    getOpeningHours: async (): Promise<OpeningHour[]> => {
+        const data = await fetchWithAuth('/hub/ifood/merchant/opening-hours');
+        return transformOpeningHoursFromApi(data);
+    },
+
+    updateOpeningHours: async (hours: Omit<OpeningHour, 'id'>[]): Promise<void> => {
+        const dayOfWeekStringToNumber: Record<OpeningHour['dayOfWeek'], number> = {
+            SUNDAY: 1,
+            MONDAY: 2,
+            TUESDAY: 3,
+            WEDNESDAY: 4,
+            THURSDAY: 5,
+            FRIDAY: 6,
+            SATURDAY: 7,
+        };
+        // API expects "HH:mm:ss" format and numeric dayOfWeek.
+        const payload = {
+            shifts: hours.map(h => ({
+                dayOfWeek: dayOfWeekStringToNumber[h.dayOfWeek],
+                start: `${h.start}:00`,
+                end: `${h.end}:00`,
+            }))
+        };
+        await fetchWithAuth('/hub/ifood/merchant/opening-hours', {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    getInterruptions: async (): Promise<Interruption[]> => {
+        const data = await fetchWithAuth('/hub/ifood/merchant/interruptions');
+        return transformInterruptionsFromApi(data);
+    },
+    
+    createInterruption: async (interruption: Omit<Interruption, 'id'>): Promise<void> => {
+        await fetchWithAuth('/hub/ifood/merchant/interruptions', {
+            method: 'POST',
+            body: JSON.stringify(interruption)
+        });
+    },
+
+    deleteInterruption: async (id: string): Promise<void> => {
+        await fetchWithAuth(`/hub/ifood/merchant/interruptions/${id}`, {
+            method: 'DELETE'
+        });
     },
 };

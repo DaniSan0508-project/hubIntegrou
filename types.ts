@@ -122,3 +122,24 @@ export interface PaginatedNotFoundItems {
     items: NotFoundItem[];
     pagination: Pagination;
 }
+
+
+// --- Store Management Types ---
+
+export interface StoreStatus {
+  state: 'OK' | 'WARNING' | 'ERROR';
+  problems: { description: string }[];
+}
+
+export interface OpeningHour {
+  dayOfWeek: 'SUNDAY' | 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
+  start: string; // "HH:mm"
+  end: string;   // "HH:mm"
+}
+
+export interface Interruption {
+  id: string;
+  description: string;
+  start: string; // ISO 8601 Date String
+  end: string;   // ISO 8601 Date String
+}

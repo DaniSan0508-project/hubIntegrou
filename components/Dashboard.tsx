@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { User, Page } from '../types';
 import OrderList from './OrderList';
 import OrderDetail from './OrderDetail';
-import ProductPage from './ProductPage'; // Import the new ProductPage component
+import ProductPage from './ProductPage';
+import StorePage from './StorePage'; // Import the new StorePage component
 import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon } from './Icons';
 
 interface DashboardProps {
@@ -30,9 +31,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       case 'orders':
         return <OrderList onSelectOrder={handleSelectOrder} />;
       case 'products':
-        return <ProductPage />; // Render the ProductPage component
+        return <ProductPage />;
       case 'merchant':
-        return <div className="p-4 text-center">Gerenciamento da Loja (Em Breve)</div>;
+        return <StorePage />; // Render the new StorePage component
       default:
         return <OrderList onSelectOrder={handleSelectOrder} />;
     }
