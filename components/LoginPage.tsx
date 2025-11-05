@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User } from '../types';
 import { api } from '../services/api';
@@ -12,6 +11,7 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('teste@portal.com');
   const [password, setPassword] = useState('secret123');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,7 +20,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError(null);
     setIsLoading(true);
     try {
-      const user = await api.login(email, password);
+      const user = await api.login(email, password, rememberMe);
       onLogin(user);
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro.');
@@ -49,7 +49,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               aria-label="Email"
             />
           </div>
-           <div className="mb-6">
+           <div className="mb-4">
             <input
               type="password"
               value={password}
@@ -58,6 +58,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder:text-gray-400"
               aria-label="Password"
             />
+          </div>
+          <div className="mb-6 flex items-center">
+            <label className="flex items-center text-sm text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="ml-2 select-none">Mantenha-me conectado</span>
+            </label>
           </div>
           {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
           <button

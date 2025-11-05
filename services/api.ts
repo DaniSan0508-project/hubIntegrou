@@ -3,12 +3,96 @@ import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Pr
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
-const TOKEN_KEY = 'hubdelivery_token';
+
+// --- New Constants ---
+const TOKEN_INFO_KEY = 'hubdelivery_token_info';
+const REMEMBER_ME_KEY = 'hubdelivery_remember_me';
 
 // --- Token Management ---
-const getToken = () => localStorage.getItem(TOKEN_KEY);
-const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
-const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+interface TokenInfo {
+    token: string;
+    expiresAt: number; // Expiration timestamp in milliseconds
+}
+
+const setTokenInfo = (token: string, expiresIn: number): void => {
+    // expiresIn is in seconds. Convert to milliseconds and calculate expiry timestamp.
+    // Add a 60-second buffer to refresh before it actually expires.
+    const expiresAt = Date.now() + (expiresIn - 60) * 1000;
+    const tokenInfo: TokenInfo = { token, expiresAt };
+    localStorage.setItem(TOKEN_INFO_KEY, JSON.stringify(tokenInfo));
+};
+
+const getTokenInfo = (): TokenInfo | null => {
+    const tokenInfoStr = localStorage.getItem(TOKEN_INFO_KEY);
+    if (!tokenInfoStr) return null;
+    try {
+        return JSON.parse(tokenInfoStr);
+    } catch (e) {
+        localStorage.removeItem(TOKEN_INFO_KEY); // Clear corrupted data
+        return null;
+    }
+};
+
+const clearTokenInfo = () => {
+    localStorage.removeItem(TOKEN_INFO_KEY);
+    localStorage.removeItem(REMEMBER_ME_KEY);
+};
+
+const isTokenNearlyExpired = (tokenInfo: TokenInfo | null): boolean => {
+    if (!tokenInfo) return true; // No token is considered expired
+    return tokenInfo.expiresAt < Date.now();
+};
+
+let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+
+const refreshToken = async (): Promise<void> => {
+    // If a refresh is already in progress, wait for it to complete
+    if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+    }
+    isRefreshing = true;
+
+    const doRefresh = async () => {
+        try {
+            const currentTokenInfo = getTokenInfo();
+            if (!currentTokenInfo) {
+                throw new Error("Nenhum token disponível para atualização.");
+            }
+
+            const response = await fetch(`${BASE_URL}/token/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${currentTokenInfo.token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
+            }
+
+            const data = await response.json();
+            if (data.token && data.expires_in) {
+                setTokenInfo(data.token, data.expires_in);
+            } else {
+                throw new Error("Resposta inválida do servidor ao atualizar a sessão.");
+            }
+        } catch (error) {
+            clearTokenInfo(); // Log out the user if refresh fails
+            throw error;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    };
+    
+    refreshPromise = doRefresh();
+    return refreshPromise;
+};
+
 
 // --- Data Transformers ---
 const transformPaginationFromApi = (apiPagination: any): Pagination => {
@@ -208,7 +292,27 @@ const transformInterruptionsFromApi = (apiInterruptions: any): Interruption[] =>
 
 // --- API Fetch Helper ---
 const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<any> => {
-    const token = getToken();
+    let tokenInfo = getTokenInfo();
+    const rememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+
+    if (isTokenNearlyExpired(tokenInfo)) {
+        if (rememberMe) {
+            try {
+                await refreshToken();
+                tokenInfo = getTokenInfo(); // Get the new token info
+            } catch (error) {
+                // refreshToken already logs out on failure; re-throw to stop the original API call.
+                throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
+            }
+        } else {
+             clearTokenInfo(); // Token expired and not set to remember me
+             throw new Error("Sessão expirada. Por favor, faça login novamente.");
+        }
+    }
+
+    if (!tokenInfo) {
+        throw new Error("Não autenticado.");
+    }
     
     const headers = new Headers(options.headers);
 
@@ -219,13 +323,14 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<an
         headers.set('Accept', 'application/json');
     }
 
-    if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-    }
+    headers.set('Authorization', `Bearer ${tokenInfo.token}`);
 
     const response = await fetch(`${BASE_URL}${url}`, { ...options, headers });
 
     if (!response.ok) {
+        if (response.status === 401) {
+            clearTokenInfo();
+        }
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
         throw new Error(errorData.message || 'Ocorreu um erro na requisição.');
     }
@@ -241,7 +346,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<an
 
 // --- Public API Service ---
 export const api = {
-    login: async (email: string, password: string): Promise<User> => {
+    login: async (email: string, password: string, rememberMe: boolean): Promise<User> => {
         const response = await fetch(`${BASE_URL}/portal/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -255,22 +360,28 @@ export const api = {
 
         const data = await response.json();
         const token = data.token;
-        if (token) {
-            setToken(token);
-            // After setting the token, call getMe to fetch the full, detailed user object.
+        const expiresIn = data.expires_in;
+
+        if (token && expiresIn) {
+            setTokenInfo(token, expiresIn);
+             if (rememberMe) {
+                localStorage.setItem(REMEMBER_ME_KEY, 'true');
+            } else {
+                localStorage.removeItem(REMEMBER_ME_KEY);
+            }
             return await api.getMe();
         } else {
-            throw new Error('Token não recebido do servidor.');
+            throw new Error('Resposta de login inválida do servidor.');
         }
     },
 
     logout: () => {
-        clearToken();
+        clearTokenInfo();
         return Promise.resolve();
     },
 
     getMe: async (): Promise<User> => {
-        if (!getToken()) {
+        if (!getTokenInfo()) {
             return Promise.reject(new Error('Não autenticado'));
         }
         const data = await fetchWithAuth('/portal/me');
