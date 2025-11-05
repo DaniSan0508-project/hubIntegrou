@@ -1,0 +1,5 @@
+{
+  "name": "HubIntegrou",
+  "description": "A mobile-first application for a delivery hub system that integrates with iFood and ERP systems to manage orders, products, and merchants efficiently.",
+  "requestFramePermissions": []
+}
