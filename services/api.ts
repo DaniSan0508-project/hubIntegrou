@@ -153,6 +153,19 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
     }
 }
 
+const transformPaymentMethodName = (apiMethod?: string): string => {
+    if (!apiMethod) {
+        return 'Não informado';
+    }
+    const upperMethod = apiMethod.toUpperCase();
+    if (upperMethod === 'CREDIT') return 'Crédito';
+    if (upperMethod === 'CASH') return 'Dinheiro';
+    if (upperMethod === 'DEBIT') return 'Débito';
+    if (upperMethod.startsWith('VOU')) return 'Vale';
+    return apiMethod; // Return original if no mapping, as it could be "Visa", etc.
+};
+
+
 // Converts API snake_case and nested responses to frontend-friendly camelCase
 const transformOrderFromApi = (apiEntry: any): Order => {
   const apiOrder = apiEntry.order || apiEntry || {};
@@ -198,7 +211,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
 
     const mainPaymentMethod = virtualBag.payment?.methods?.[0];
     if (mainPaymentMethod) {
-        paymentMethod = mainPaymentMethod.name;
+        paymentMethod = transformPaymentMethodName(mainPaymentMethod.name);
         if (mainPaymentMethod.card?.brand) {
             paymentMethod += ` (${mainPaymentMethod.card.brand})`;
         }
@@ -241,7 +254,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
     }) : [];
     
     total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
-    paymentMethod = apiPayment.method || 'Não informado';
+    paymentMethod = transformPaymentMethodName(apiPayment.method);
   }
   
   const dataSourceForStatus = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;

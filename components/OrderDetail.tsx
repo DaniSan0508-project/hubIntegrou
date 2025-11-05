@@ -3,7 +3,7 @@ import { Order } from '../types';
 import { api } from '../services/api';
 import StatusBadge from './StatusBadge';
 import { NEXT_ACTION_MAP } from '../constants';
-import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon } from './Icons';
+import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon, ClipboardIcon } from './Icons';
 import LoadingSpinner from './LoadingSpinner';
 
 interface OrderDetailProps {
@@ -11,11 +11,22 @@ interface OrderDetailProps {
   onBack: () => void;
 }
 
+const Toast: React.FC<{ message: string; isVisible: boolean }> = ({ message, isVisible }) => (
+    <div
+      className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-800 text-white rounded-lg shadow-lg transition-opacity duration-300 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      {message}
+    </div>
+);
+
 const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   const fetchOrder = useCallback(async () => {
       setIsLoading(true);
@@ -51,6 +62,21 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
     }
   }
 
+  const handleDeliveryCodeClick = () => {
+    if (order?.deliveryCode) {
+      navigator.clipboard.writeText(order.deliveryCode).then(() => {
+        setToastMessage('Código copiado para a área de transferência!');
+        window.open('https://confirmacao-entrega-propria.ifood.com.br/', '_blank', 'noopener,noreferrer');
+        setTimeout(() => setToastMessage(null), 3000);
+      }).catch(err => {
+        console.error('Falha ao copiar:', err);
+        setToastMessage('Falha ao copiar o código.');
+        setTimeout(() => setToastMessage(null), 3000);
+      });
+    }
+  };
+
+
   if (isLoading) {
     return (
         <div className="flex flex-col items-center justify-center p-10">
@@ -73,6 +99,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
 
   return (
     <div className="bg-gray-50 min-h-full">
+      <Toast message={toastMessage || ''} isVisible={!!toastMessage} />
       <div className="p-4 bg-white border-b sticky top-0 z-10 flex items-center">
         <button onClick={onBack} className="mr-4 text-gray-600 hover:text-gray-900">
           <BackIcon />
@@ -96,7 +123,14 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
                 {order.deliveryCode && (
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-gray-600">Código de Entrega:</span>
-                        <span className="font-bold font-mono text-gray-900">{order.deliveryCode}</span>
+                        <button
+                            onClick={handleDeliveryCodeClick}
+                            className="font-bold font-mono text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1.5 p-1 -m-1 rounded-md"
+                            title="Copiar código e abrir página de confirmação"
+                        >
+                            <span>{order.deliveryCode}</span>
+                            <ClipboardIcon className="h-4 w-4" />
+                        </button>
                     </div>
                 )}
                 {order.pickupCode && (
