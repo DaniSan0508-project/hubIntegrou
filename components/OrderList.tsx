@@ -237,6 +237,32 @@ const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
     return savedMute ? JSON.parse(savedMute) : false;
   });
 
+  // Effect to unlock audio playback on the first user interaction.
+  // Browsers block programmatic audio playback until the user interacts with the page.
+  useEffect(() => {
+    const audioEl = audioRef.current;
+
+    const handleFirstUserInteraction = () => {
+      if (audioEl && audioEl.paused) {
+        // The .load() method can help prepare the audio element for playback,
+        // satisfying some browser policies after a user gesture.
+        audioEl.load();
+      }
+      // Remove the listener so this logic only runs once.
+      window.removeEventListener('click', handleFirstUserInteraction);
+      window.removeEventListener('touchstart', handleFirstUserInteraction);
+    };
+
+    window.addEventListener('click', handleFirstUserInteraction);
+    window.addEventListener('touchstart', handleFirstUserInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleFirstUserInteraction);
+      window.removeEventListener('touchstart', handleFirstUserInteraction);
+    };
+  }, []);
+
+
   useEffect(() => {
     localStorage.setItem('isNotificationMuted', JSON.stringify(isMuted));
   }, [isMuted]);
