@@ -451,7 +451,7 @@ export const api = {
                     barcode: p.barcode,
                     name: p.name,
                     value: p.price,
-                    stock_quantity: p.stock,
+                    stock: p.stock,
                     status: p.status === 'active',
                 }))
             };
