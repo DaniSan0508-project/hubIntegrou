@@ -1,7 +1,8 @@
 // services/api.ts
 import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData } from '../types';
 
-const BASE_URL = 'http://localhost:8104/api';
+// Use environment variable for the API base URL, with a fallback for local development.
+const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
 const TOKEN_KEY = 'hubdelivery_token';
 
 // --- Token Management ---
