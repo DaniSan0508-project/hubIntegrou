@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Product, ProductFilters, Pagination } from '../types';
+import { Product, ProductFilters, Pagination, IfoodItem } from '../types';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import PaginationControls from './PaginationControls';
@@ -94,11 +94,40 @@ const ProductPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const { products: fetchedProducts, pagination: fetchedPagination } = await api.getProducts({ ...appliedFilters, page });
-            setProducts(fetchedProducts);
+            // Fetch local products and iFood items in parallel
+            const [productResponse, ifoodItems] = await Promise.all([
+                api.getProducts({ ...appliedFilters, page }),
+                api.getIfoodItems()
+            ]);
+            
+            const { products: fetchedProducts, pagination: fetchedPagination } = productResponse;
+            
+            const ifoodItemsMap = new Map<string, IfoodItem>(ifoodItems.map(item => [item.itemEan, item]));
+
+            const augmentedProducts = fetchedProducts.map(product => {
+                const ifoodItem = ifoodItemsMap.get(product.barcode);
+                if (ifoodItem) {
+                    return {
+                        ...product,
+                        isOnIfood: true,
+                        // Use iFood's name, price, and stock for consistency
+                        name: ifoodItem.itemName,
+                        price: ifoodItem.itemPrice.value,
+                        stock: ifoodItem.itemQuantity, // Overwrite stock with iFood's stock
+                    };
+                } else {
+                    return {
+                        ...product,
+                        isOnIfood: false,
+                    };
+                }
+            });
+
+            setProducts(augmentedProducts);
             setPagination(fetchedPagination);
-        } catch (err) {
+        } catch (err: any) {
             setError('Falha ao carregar produtos.');
+            console.error('Product fetch error:', err);
         } finally {
             setIsLoading(false);
         }

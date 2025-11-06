@@ -1,5 +1,5 @@
 // services/api.ts
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, IfoodItem } from '../types';
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
@@ -674,6 +674,10 @@ export const api = {
     },
 
     // --- Product Management API ---
+    getIfoodItems: async (): Promise<IfoodItem[]> => {
+        const data = await fetchWithAuth('/hub/ifood/items');
+        return data?.data?.items || [];
+    },
 
     getProducts: async (filters: ProductFilters = {}): Promise<PaginatedProducts> => {
         const params = new URLSearchParams();
