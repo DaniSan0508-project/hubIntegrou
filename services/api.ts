@@ -161,7 +161,7 @@ const transformPaymentMethodName = (apiMethod?: string): string => {
     if (upperMethod === 'CREDIT') return 'Crédito';
     if (upperMethod === 'CASH') return 'Dinheiro';
     if (upperMethod === 'DEBIT') return 'Débito';
-    if (upperMethod.startsWith('VOU')) return 'Vale';
+    if (upperMethod.includes('VOUCHER')) return 'Vale';
     return apiMethod; // Return original if no mapping, as it could be "Visa", etc.
 };
 

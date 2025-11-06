@@ -60,12 +60,14 @@ const OpeningHoursModal: React.FC<OpeningHoursModalProps> = ({ isOpen, onClose, 
         setIsLoading(true);
         setError(null);
         try {
-            const hoursToSave = Object.entries(hours)
-                .filter(([, val]) => val.enabled)
-                .map(([day, val]) => ({
+            // FIX: Refactored to use Object.keys to avoid typing issues with Object.entries,
+            // which was causing properties on `val` to be typed as 'unknown'.
+            const hoursToSave = Object.keys(hours)
+                .filter((day) => hours[day].enabled)
+                .map((day) => ({
                     dayOfWeek: day as OpeningHour['dayOfWeek'],
-                    start: val.start,
-                    end: val.end,
+                    start: hours[day].start,
+                    end: hours[day].end,
                 }));
 
             await api.updateOpeningHours(hoursToSave);
