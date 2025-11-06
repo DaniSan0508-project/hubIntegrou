@@ -20,7 +20,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
                     <p className="font-semibold text-gray-900">{formatCurrency(product.price)}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-xs text-gray-500">{product.isOnIfood ? 'Estoque iFood' : 'Estoque Local'}</p>
+                    <p className="text-xs text-gray-500">Estoque</p>
                     <p className="font-semibold text-gray-900">{product.stock}</p>
                 </div>
             </div>
