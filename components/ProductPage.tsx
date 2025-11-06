@@ -110,10 +110,9 @@ const ProductPage: React.FC = () => {
                     return {
                         ...product,
                         isOnIfood: true,
-                        // Use iFood's name, price, and stock for consistency
+                        // Use iFood's name and price for consistency, but preserve local stock
                         name: ifoodItem.itemName,
                         price: ifoodItem.itemPrice.value,
-                        stock: ifoodItem.itemQuantity, // Overwrite stock with iFood's stock
                     };
                 } else {
                     return {
