@@ -167,6 +167,22 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
                         <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(fee.amount)}</span>
                     </div>
                 ))}
+                 {order.cashChangeFor && order.cashChangeFor > 0 && (
+                    <div className="pt-2 space-y-2">
+                        <div className="flex justify-between border-t pt-2">
+                            <span className="text-gray-600">Receber (dinheiro):</span>
+                            <span className="font-medium text-gray-800">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.cashChangeFor)}
+                            </span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-indigo-700 bg-indigo-50 p-2 rounded-md">
+                            <span>Troco:</span>
+                            <span>
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.cashChangeFor - order.total)}
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
             <hr className="my-3"/>
             <div className="flex justify-between items-center">

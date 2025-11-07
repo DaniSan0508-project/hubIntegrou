@@ -178,6 +178,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
   let deliveryFee: number | undefined = undefined;
   let otherFees: OrderFee[] | undefined = undefined;
   let paymentMethod: string = 'Não informado';
+  let cashChangeFor: number | undefined = undefined;
   let deliveryCode: string | undefined = apiOrder.ifood?.delivery_code;
   let pickupCode: string | undefined = apiOrder.ifood?.pickup_code;
   let deliveryAddress: string = apiOrder.delivery_address || 'Endereço não informado';
@@ -214,6 +215,9 @@ const transformOrderFromApi = (apiEntry: any): Order => {
         paymentMethod = transformPaymentMethodName(mainPaymentMethod.name);
         if (mainPaymentMethod.card?.brand) {
             paymentMethod += ` (${mainPaymentMethod.card.brand})`;
+        }
+        if (mainPaymentMethod.name === 'CASH' && mainPaymentMethod.cash?.changeFor?.value) {
+             cashChangeFor = mainPaymentMethod.cash.changeFor.value / 100;
         }
     }
 
@@ -255,8 +259,27 @@ const transformOrderFromApi = (apiEntry: any): Order => {
     
     total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
     paymentMethod = transformPaymentMethodName(apiPayment.method);
+    if (apiPayment.cash_change_for) {
+        const change = parseFloat(apiPayment.cash_change_for);
+        if (!isNaN(change) && change > 0) {
+            cashChangeFor = change;
+        }
+    }
   }
   
+  // A more robust fallback for cash change. If it wasn't found in the primary paths 
+  // (e.g., virtual_bag exists but is missing payment info), check legacy locations.
+  if (cashChangeFor === undefined) {
+      const legacyPayment = apiOrder.ifood?.payment || apiOrder.payment;
+      if (legacyPayment?.cash_change_for) {
+          const change = parseFloat(legacyPayment.cash_change_for);
+          if (!isNaN(change) && change > 0) {
+              cashChangeFor = change;
+          }
+      }
+  }
+
+
   const dataSourceForStatus = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
   const status = mapApiStatusToEnum(dataSourceForStatus.status);
 
@@ -283,6 +306,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
     items: items,
     deliveryAddress: deliveryAddress,
     paymentMethod: paymentMethod,
+    cashChangeFor: cashChangeFor,
     deliveryProvider: deliveryProvider,
     // new fields
     deliveryCode: deliveryCode,

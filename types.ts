@@ -60,6 +60,7 @@ export interface Order {
   items: OrderItem[];
   deliveryAddress: string;
   paymentMethod: string;
+  cashChangeFor?: number;
   deliveryProvider: 'TAKEOUT' | 'IFOOD' | 'MERCHANT' | 'UNKNOWN';
   deliveryCode?: string;
   pickupCode?: string;
