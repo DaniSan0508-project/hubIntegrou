@@ -3,7 +3,7 @@ import { ProductToAdd } from '../types';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import { UploadIcon, TrashIcon, PlusIcon, SyncIcon } from './Icons';
-import { parseProductFile } from '../services/productParser'; // Import the new parser
+import { parseProductFile } from '../services/productParser';
 
 interface SyncProductsModalProps {
     isOpen: boolean;
@@ -11,6 +11,88 @@ interface SyncProductsModalProps {
     onSyncComplete: () => void;
 }
 
+const formatCurrency = (value: number) => 
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+// --- Sub-component for Manual Product Addition ---
+interface ManualAddFormProps {
+    product: Partial<ProductToAdd>;
+    setProduct: React.Dispatch<React.SetStateAction<Partial<ProductToAdd>>>;
+    onAdd: (product: ProductToAdd) => boolean;
+}
+
+const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAdd }) => {
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        const { price, promotion_price } = product;
+
+        if (!product.barcode || !product.name) {
+            alert("Código de Barras e Nome são obrigatórios.");
+            return;
+        }
+        if ((price ?? -1) < 0 || (product.stock ?? -1) < 0) {
+            alert("Preço e Estoque não podem ser negativos.");
+            return;
+        }
+        if (promotion_price && price && promotion_price >= price) {
+            alert("O preço promocional deve ser menor que o preço normal.");
+            return;
+        }
+        
+        const productToAdd: ProductToAdd = {
+            barcode: product.barcode,
+            name: product.name,
+            price: price ?? 0,
+            stock: product.stock ?? 0,
+            status: product.status ?? 'active',
+            promotion_price: promotion_price || null,
+        };
+
+        onAdd(productToAdd);
+    };
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        const isNumberField = ['price', 'stock', 'promotion_price'].includes(name);
+
+        setProduct(prev => ({
+            ...prev,
+            [name]: isNumberField ? (value === '' ? undefined : Number(value)) : value
+        }));
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="p-4 border rounded-lg bg-gray-50 space-y-4">
+            <h3 className="font-semibold text-gray-700">2. Adicionar Produto Manualmente</h3>
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
+                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input type="number" name="price" placeholder="Preço (DE)" value={product.price ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="0.01" required />
+                    <input type="number" name="promotion_price" placeholder="Preço Promocional (POR)" value={product.promotion_price ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="0.01" />
+                </div>
+                <div className="grid grid-cols-1">
+                    <input type="number" name="stock" placeholder="Estoque" value={product.stock ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="1" required />
+                </div>
+            </div>
+             <div className="flex items-center justify-between pt-4">
+                <select name="status" value={product.status} onChange={handleChange} className="px-3 py-2 bg-white border border-gray-300 rounded-lg">
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                </select>
+                <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center justify-center">
+                    <PlusIcon className="mr-2 h-5 w-5" /> Adicionar à Fila
+                </button>
+            </div>
+        </form>
+    );
+};
+
+
+// --- Main Modal Component ---
 const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, onSyncComplete }) => {
     const [syncQueue, setSyncQueue] = useState<ProductToAdd[]>([]);
     const [isReset, setIsReset] = useState(false);
@@ -20,6 +102,16 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
     const [error, setError] = useState<string | null>(null);
     const [isParsing, setIsParsing] = useState(false);
     
+    // State for the manual add form is lifted here to be controlled externally
+    const [manualProduct, setManualProduct] = useState<Partial<ProductToAdd>>({
+        barcode: '',
+        name: '',
+        price: undefined,
+        promotion_price: undefined,
+        stock: undefined,
+        status: 'active'
+    });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const resetState = useCallback(() => {
@@ -30,6 +122,7 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
         setError(null);
         setIsParsing(false);
         setSyncProgress(0);
+        setManualProduct({ barcode: '', name: '', price: undefined, promotion_price: undefined, stock: undefined, status: 'active' });
     }, []);
 
     const handleClose = () => {
@@ -108,51 +201,6 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
 
     if (!isOpen) return null;
 
-    const ManualAddForm: React.FC<{ onAdd: (product: ProductToAdd) => boolean }> = ({ onAdd }) => {
-        const [product, setProduct] = useState<ProductToAdd>({ barcode: '', name: '', price: 0, stock: 0, status: 'active' });
-
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            if (!product.barcode || !product.name) {
-                alert("Código de Barras e Nome são obrigatórios.");
-                return;
-            }
-            if (product.price < 0 || product.stock < 0) {
-                alert("Preço e Estoque não podem ser negativos.");
-                return;
-            }
-            if(onAdd(product)) {
-                setProduct({ barcode: '', name: '', price: 0, stock: 0, status: 'active' }); // Reset form on success
-            }
-        };
-        
-        const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-            const { name, value } = e.target;
-            setProduct(prev => ({ ...prev, [name]: (name === 'price' || name === 'stock') ? Number(value) : value }));
-        };
-
-        return (
-            <form onSubmit={handleSubmit} className="p-4 border rounded-lg bg-gray-50 space-y-4">
-                <h3 className="font-semibold text-gray-700">2. Adicionar Produto Manualmente</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
-                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
-                    <input type="number" name="price" placeholder="Preço" value={product.price || ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="0.01" required />
-                    <input type="number" name="stock" placeholder="Estoque" value={product.stock || ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="1" required />
-                </div>
-                 <div className="flex items-center justify-between">
-                    <select name="status" value={product.status} onChange={handleChange} className="px-3 py-2 bg-white border border-gray-300 rounded-lg">
-                        <option value="active">Ativo</option>
-                        <option value="inactive">Inativo</option>
-                    </select>
-                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center justify-center">
-                        <PlusIcon className="mr-2 h-5 w-5" /> Adicionar à Fila
-                    </button>
-                </div>
-            </form>
-        );
-    };
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
@@ -176,14 +224,20 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                          {importMessage && <p className="text-sm text-gray-600 mt-2">{importMessage}</p>}
                     </div>
                     
-                    <ManualAddForm onAdd={(product) => {
-                         if (syncQueue.some(p => p.barcode === product.barcode)) {
-                            alert(`Produto com código de barras ${product.barcode} já está na fila.`);
-                            return false;
-                        }
-                        setSyncQueue(prev => [...prev, product]);
-                        return true;
-                     }} />
+                    <ManualAddForm 
+                        product={manualProduct}
+                        setProduct={setManualProduct}
+                        onAdd={(product) => {
+                             if (syncQueue.some(p => p.barcode === product.barcode)) {
+                                alert(`Produto com código de barras ${product.barcode} já está na fila.`);
+                                return false;
+                            }
+                            setSyncQueue(prev => [...prev, product]);
+                            // Reset form state after successful add
+                            setManualProduct({ barcode: '', name: '', price: undefined, promotion_price: undefined, stock: undefined, status: 'active' });
+                            return true;
+                         }} 
+                    />
 
                     <div>
                         <h3 className="font-semibold text-gray-700 mb-2">3. Fila de Sincronização ({syncQueue.length} produtos)</h3>
@@ -193,6 +247,7 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                                     <thead className="bg-gray-100 sticky top-0 z-10">
                                         <tr>
                                             <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Produto</th>
+                                            <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Preços</th>
                                             <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider">Cód. Barras</th>
                                             <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Ação</th>
                                         </tr>
@@ -201,6 +256,16 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                                         {syncQueue.map(p => (
                                             <tr key={p.barcode} className="border-b last:border-b-0 even:bg-gray-50">
                                                 <td className="p-3 text-gray-900 font-medium">{p.name}</td>
+                                                <td className="p-3 text-gray-700">
+                                                    {p.promotion_price && p.promotion_price > 0 ? (
+                                                        <div>
+                                                            <span className="line-through text-gray-500">{formatCurrency(p.price)}</span>
+                                                            <span className="font-bold text-green-600 block">{formatCurrency(p.promotion_price)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span>{formatCurrency(p.price)}</span>
+                                                    )}
+                                                </td>
                                                 <td className="p-3 text-gray-700 font-mono">{p.barcode}</td>
                                                 <td className="p-3 text-center">
                                                     <button onClick={() => handleRemoveFromQueue(p.barcode)} className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors">

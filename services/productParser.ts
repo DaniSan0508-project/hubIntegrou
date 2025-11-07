@@ -54,7 +54,7 @@ export const parseProductFile = (file: File): Promise<ProductToAdd[]> => {
                             }
                             // Process rows, assuming a fixed column order
                             const products = await processData(results.data, (row: any[]) => {
-                                // Expects: [barcode, name, price, stock]
+                                // Expects: [barcode, name, price, stock, promotion_price?]
                                 if (!Array.isArray(row) || row.length < 4) {
                                     return null; // Skip invalid or incomplete rows
                                 }
@@ -63,12 +63,15 @@ export const parseProductFile = (file: File): Promise<ProductToAdd[]> => {
                                 const priceStr = String(row[2] || '0').replace(',', '.');
                                 const price = parseFloat(priceStr);
                                 const stock = parseInt(row[3] || '0', 10);
-                                
+                                const promoPriceStr = String(row[4] || '0').replace(',', '.');
+                                const promoPrice = parseFloat(promoPriceStr);
+
                                 if (barcode && name && !isNaN(price) && !isNaN(stock)) {
                                     return { 
                                         barcode: String(barcode).trim(), 
                                         name: String(name).trim(), 
                                         price, 
+                                        promotion_price: !isNaN(promoPrice) && promoPrice > 0 ? promoPrice : null,
                                         stock, 
                                         status: 'active' 
                                     };
@@ -91,8 +94,9 @@ export const parseProductFile = (file: File): Promise<ProductToAdd[]> => {
                         const name = item.getElementsByTagName('xProd')[0]?.textContent || '';
                         const price = parseFloat(item.getElementsByTagName('vUnCom')[0]?.textContent || '0');
                         const stock = parseInt(item.getElementsByTagName('qCom')[0]?.textContent || '0', 10);
+                        // NOTE: promotion_price is not supported for XML as no standard tag was defined.
                         if (barcode && name && !isNaN(price) && !isNaN(stock)) {
-                            return { barcode: barcode.trim(), name, price, stock, status: 'active' };
+                            return { barcode: barcode.trim(), name, price, stock, status: 'active', promotion_price: null };
                         }
                         return null;
                     });
@@ -109,6 +113,7 @@ export const parseProductFile = (file: File): Promise<ProductToAdd[]> => {
                         barcode: h.findIndex(c => /barcode|ean/i.test(String(c))),
                         name: h.findIndex(c => /name|produto|descri/i.test(String(c))),
                         price: h.findIndex(c => /price|valor|value|preço|preco/i.test(String(c))),
+                        promotion_price: h.findIndex(c => /promotion_price|preco_promocional|preço promocional|preco promocao|promotion price/i.test(String(c))),
                         stock: h.findIndex(c => /stock|estoque|qtd/i.test(String(c))),
                     });
                     
@@ -122,9 +127,17 @@ export const parseProductFile = (file: File): Promise<ProductToAdd[]> => {
                         const barcode = row[headerMap.barcode];
                         const name = row[headerMap.name];
                         const price = parseFloat(String(row[headerMap.price] || '0').replace(',', '.'));
+                        const promoPrice = headerMap.promotion_price > -1 ? parseFloat(String(row[headerMap.promotion_price] || '0').replace(',', '.')) : NaN;
                         const stock = parseInt(row[headerMap.stock] || '0', 10);
                          if (barcode && name && !isNaN(price) && !isNaN(stock)) {
-                            return { barcode: String(barcode).trim(), name, price, stock, status: 'active' };
+                            return {
+                                barcode: String(barcode).trim(),
+                                name,
+                                price,
+                                promotion_price: !isNaN(promoPrice) && promoPrice > 0 ? promoPrice : null,
+                                stock,
+                                status: 'active'
+                            };
                         }
                         return null;
                     });

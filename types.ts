@@ -109,7 +109,8 @@ export interface Product {
   id: string;
   name: string;
   barcode: string;
-  price: number;
+  price: number; // This is the "value" or "DE" price
+  promotion_price?: number | null; // This is the "POR" price
   stock: number;
   status: 'active' | 'inactive';
   isSynced: boolean;
@@ -120,7 +121,8 @@ export interface Product {
 export interface ProductToAdd {
   barcode: string;
   name: string;
-  price: number;
+  price: number; // This is the "value" or "DE" price
+  promotion_price?: number | null; // This is the "POR" price
   stock: number;
   status: 'active' | 'inactive';
 }
@@ -142,20 +144,12 @@ export interface ProductFilters {
   perPage?: number;
 }
 
+// FIX: Add NotFoundItem interface to resolve import error in NotFoundProductsModal.
 export interface NotFoundItem {
-    id: string;
-    barcode: string;
-    name: string;
-    notes: string;
-    status: string;
-    createdAt: string;
+  id: string;
+  name: string;
+  barcode?: string;
 }
-
-export interface PaginatedNotFoundItems {
-    items: NotFoundItem[];
-    pagination: Pagination;
-}
-
 
 // --- Store Management Types ---
 

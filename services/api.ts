@@ -1,5 +1,6 @@
 // services/api.ts
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, NotFoundItem, PaginatedNotFoundItems, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, IfoodItem } from '../types';
+// FIX: Import NotFoundItem type to be used in the new getNotFoundItems method.
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, IfoodItem, NotFoundItem } from '../types';
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
@@ -338,26 +339,17 @@ const transformUserFromApi = (apiResponse: any): User => {
 };
 
 const transformProductFromApi = (apiProduct: any): Product => {
+    const promotionPrice = parseFloat(apiProduct.promotion_price);
     return {
         id: apiProduct.id,
         name: apiProduct.name,
         barcode: apiProduct.barcode,
         price: parseFloat(apiProduct.value) || 0,
+        promotion_price: !isNaN(promotionPrice) && promotionPrice > 0 ? promotionPrice : null,
         stock: parseInt(apiProduct.stock_quantity, 10) || 0,
         status: apiProduct.status === true ? 'active' : 'inactive',
         isSynced: apiProduct.sync_status === 'synced',
         createdAt: apiProduct.created_at || new Date().toISOString(),
-    };
-};
-
-const transformNotFoundItemFromApi = (apiItem: any): NotFoundItem => {
-    return {
-        id: apiItem.id,
-        barcode: apiItem.barcode,
-        name: apiItem.name,
-        notes: apiItem.notes || '',
-        status: apiItem.status || 'unknown',
-        createdAt: apiItem.created_at || new Date().toISOString(),
     };
 };
 
@@ -725,6 +717,36 @@ export const api = {
         return data?.data?.items || [];
     },
 
+    // FIX: Add getNotFoundItems to resolve missing property error in NotFoundProductsModal.
+    getNotFoundItems: async (page: number): Promise<{ items: NotFoundItem[], pagination: Pagination }> => {
+        const params = new URLSearchParams({
+            page: String(page)
+        });
+        const url = `/hub/ifood/items/not-found?${params.toString()}`;
+        const data = await fetchWithAuth(url);
+
+        const itemsArray = data.data || [];
+        const pagination = data.pagination
+            ? transformPaginationFromApi(data.pagination)
+            : {
+                currentPage: 1,
+                perPage: itemsArray.length,
+                total: itemsArray.length,
+                totalPages: 1,
+            };
+
+        const transformNotFoundItemFromApi = (apiItem: any): NotFoundItem => ({
+            id: String(apiItem.id),
+            name: apiItem.name,
+            barcode: apiItem.ean || apiItem.barcode,
+        });
+
+        return {
+            items: itemsArray.map(transformNotFoundItemFromApi),
+            pagination,
+        };
+    },
+
     getProducts: async (filters: ProductFilters = {}): Promise<PaginatedProducts> => {
         const params = new URLSearchParams();
 
@@ -756,24 +778,6 @@ export const api = {
         };
     },
 
-    getNotFoundItems: async (page: number = 1, perPage: number = 15): Promise<PaginatedNotFoundItems> => {
-        const url = `/hub/not-found-items?page=${page}&per_page=${perPage}`;
-        const data = await fetchWithAuth(url);
-        
-        const itemsArray = data.items || [];
-        const pagination = data.pagination ? transformPaginationFromApi(data.pagination) : {
-            currentPage: 1,
-            perPage: itemsArray.length,
-            total: itemsArray.length,
-            totalPages: 1,
-        };
-
-        return {
-            items: itemsArray.map(transformNotFoundItemFromApi),
-            pagination: pagination,
-        };
-    },
-
     syncProducts: async (
         products: ProductToAdd[], 
         isReset: boolean,
@@ -794,7 +798,7 @@ export const api = {
                     barcode: p.barcode,
                     name: p.name,
                     value: p.price,
-                    // FIX: Corrected property from 'stock_quantity' to 'stock' to match the ProductToAdd type.
+                    promotion_price: p.promotion_price || null,
                     stock: p.stock,
                     status: p.status === 'active',
                 }))

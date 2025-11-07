@@ -5,6 +5,8 @@ const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+    const hasPromotion = product.promotion_price && product.promotion_price > 0 && product.promotion_price < product.price;
+
     return (
         <li className="bg-white rounded-lg shadow-sm border p-4 flex flex-col justify-between list-none">
             {/* Top Section */}
@@ -17,7 +19,14 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
             <div className="flex justify-between items-center my-4">
                 <div>
                     <p className="text-xs text-gray-500">Preço</p>
-                    <p className="font-semibold text-gray-900">{formatCurrency(product.price)}</p>
+                    {hasPromotion ? (
+                        <div>
+                            <p className="text-sm line-through text-gray-500">{formatCurrency(product.price)}</p>
+                            <p className="font-semibold text-lg text-green-600">{formatCurrency(product.promotion_price!)}</p>
+                        </div>
+                    ) : (
+                        <p className="font-semibold text-gray-900">{formatCurrency(product.price)}</p>
+                    )}
                 </div>
                 <div className="text-right">
                     <p className="text-xs text-gray-500">Estoque</p>
