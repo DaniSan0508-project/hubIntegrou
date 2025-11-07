@@ -16,7 +16,7 @@ export const ORDER_STATUS_MAP: Record<OrderStatus, { text: string; color: string
 
 export const NEXT_ACTION_MAP: Record<OrderStatus, { text: string; nextStatus: OrderStatus } | null> = {
     [OrderStatus.PLC]: { text: 'Confirmar', nextStatus: OrderStatus.COM },
-    [OrderStatus.COM]: { text: 'Iniciar Separação', nextStatus: OrderStatus.SPS },
+    [OrderStatus.COM]: { text: 'Concluir Separação', nextStatus: OrderStatus.SPE },
     [OrderStatus.SPS]: { text: 'Finalizar Separação', nextStatus: OrderStatus.SPE },
     [OrderStatus.SPE]: { text: 'Despachar', nextStatus: OrderStatus.DSP },
     [OrderStatus.OPA]: null,

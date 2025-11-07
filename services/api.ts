@@ -605,7 +605,13 @@ export const api = {
                 endpoint = `/erp/orders/${localId}/start-separation`;
                 break;
             case OrderStatus.SPE:
-                endpoint = `/erp/orders/${localId}/end-separation`;
+                // If transitioning from Confirmed, use the combined endpoint.
+                if (order.status === OrderStatus.COM) {
+                    endpoint = `/erp/orders/${localId}/separation-concluded`;
+                } else {
+                    // Otherwise, use the original endpoint (e.g., for SPS -> SPE).
+                    endpoint = `/erp/orders/${localId}/end-separation`;
+                }
                 break;
             case OrderStatus.DSP:
                 // Use specific iFood dispatch endpoint if applicable, based on PRD.
