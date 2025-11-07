@@ -340,8 +340,24 @@ const transformNotFoundItemFromApi = (apiItem: any): NotFoundItem => {
 const transformStoreStatusFromApi = (apiStatus: any): StoreStatus => {
     // Assuming the API response for status is nested under a `data` key
     const data = apiStatus.data || {};
+    let state: StoreStatus['state'];
+
+    // Normalize the state from the API to prevent runtime errors with unexpected values.
+    switch ((data.state || '').toUpperCase()) {
+        case 'OK':
+            state = 'OK';
+            break;
+        case 'WARNING':
+            state = 'WARNING';
+            break;
+        case 'ERROR':
+        default:
+            state = 'ERROR';
+            break;
+    }
+
     return {
-        state: data.state || 'ERROR', // Default to ERROR if state is missing
+        state: state,
         problems: Array.isArray(data.problems) ? data.problems.map((p: any) => ({ description: p.description || 'Problema não descrito' })) : [],
     };
 };
