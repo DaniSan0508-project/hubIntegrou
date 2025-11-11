@@ -67,6 +67,12 @@ export interface Order {
   subtotal?: number;
   deliveryFee?: number;
   otherFees?: OrderFee[];
+  isScheduled?: boolean;
+  deliveryWindow?: {
+    start: string;
+    end: string;
+  };
+  preparationStartTime?: string;
 }
 
 export type Page = 'orders' | 'products' | 'merchant';
@@ -95,16 +101,6 @@ export interface OrderFilters {
 
 
 // --- Product Management Types ---
-export interface IfoodItem {
-    itemId: string;
-    itemEan: string;
-    itemName: string;
-    itemPrice: {
-        value: number;
-    };
-    itemQuantity: number;
-}
-
 export interface Product {
   id: string;
   name: string;
@@ -115,7 +111,6 @@ export interface Product {
   status: 'active' | 'inactive';
   isSynced: boolean;
   createdAt: string;
-  isOnIfood?: boolean; // Flag indicating if product is active on iFood
 }
 
 export interface ProductToAdd {

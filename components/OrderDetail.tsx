@@ -3,13 +3,40 @@ import { Order } from '../types';
 import { api } from '../services/api';
 import StatusBadge from './StatusBadge';
 import { NEXT_ACTION_MAP } from '../constants';
-import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon, ClipboardIcon } from './Icons';
+import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon, ClipboardIcon, CalendarIcon } from './Icons';
 import LoadingSpinner from './LoadingSpinner';
 
 interface OrderDetailProps {
   orderId: string;
   onBack: () => void;
 }
+
+const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString.replace(' ', 'T'));
+    if (isNaN(date.getTime())) {
+        return dateString; // Fallback for invalid dates
+    }
+    // Format: DD/MM/YYYY HH:mm
+    return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).replace(',', '');
+};
+
+const formatTime = (dateString: string) => {
+    const date = new Date(dateString.replace(' ', 'T'));
+    if (isNaN(date.getTime())) {
+        return '';
+    }
+    // Format: HH:mm
+    return date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
 
 const Toast: React.FC<{ message: string; isVisible: boolean }> = ({ message, isVisible }) => (
     <div
@@ -116,6 +143,27 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
             <p className="font-bold text-gray-900">{order.customerName}</p>
             <p className="text-sm text-gray-600 flex items-start"><MapPinIcon className="mr-2 mt-1 flex-shrink-0 h-4 w-4" /> {order.deliveryAddress}</p>
         </div>
+        
+        {order.isScheduled && (
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><CalendarIcon className="mr-2 h-5 w-5 text-gray-400" /> Agendamento</h3>
+                <div className="space-y-2 text-sm">
+                    {order.deliveryWindow && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Janela de Entrega:</span>
+                            <span className="font-medium text-gray-800 text-right">{formatDateTime(order.deliveryWindow.start)} - {formatTime(order.deliveryWindow.end)}</span>
+                        </div>
+                    )}
+                    {order.preparationStartTime && (
+                         <div className="flex justify-between">
+                            <span className="text-gray-600">Iniciar Preparo:</span>
+                            <span className="font-medium text-gray-800">{formatDateTime(order.preparationStartTime)}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+
 
         {(order.deliveryCode || order.pickupCode) && (
             <div className="bg-white p-4 rounded-lg shadow-sm border">

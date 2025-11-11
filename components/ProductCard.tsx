@@ -36,9 +36,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
             {/* Bottom Section (Footer) */}
             <div className="flex items-center space-x-2 flex-wrap">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${product.isOnIfood ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {product.isOnIfood ? 'Ativo no iFood' : 'Inativo no iFood'}
-                </span>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${product.isSynced ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {product.isSynced ? 'Sincronizado' : 'Pendente'}
                 </span>

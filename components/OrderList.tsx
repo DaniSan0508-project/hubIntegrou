@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Order, OrderStatus, OrderFilters, Pagination } from '../types';
 import { api } from '../services/api';
 import StatusBadge from './StatusBadge';
-import { RefreshIcon, FilterIcon, ChevronRightIcon, SpeakerOnIcon, SpeakerOffIcon } from './Icons';
+import { RefreshIcon, FilterIcon, ChevronRightIcon, SpeakerOnIcon, SpeakerOffIcon, CalendarIcon } from './Icons';
 import { ORDER_STATUS_MAP, NEXT_ACTION_MAP } from '../constants';
 import PaginationControls from './PaginationControls';
 import LoadingSpinner from './LoadingSpinner';
@@ -28,6 +28,18 @@ const formatDateTime = (dateString: string) => {
         hour: '2-digit',
         minute: '2-digit'
     }).replace(',', '');
+};
+
+const formatTime = (dateString: string) => {
+    const date = new Date(dateString.replace(' ', 'T'));
+    if (isNaN(date.getTime())) {
+        return '';
+    }
+    // Format: HH:mm
+    return date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 };
 
 
@@ -72,6 +84,17 @@ const OrderCard: React.FC<{
                 </div>
                 <StatusBadge order={order} />
             </div>
+
+            {order.isScheduled && order.deliveryWindow && (
+                <div className="mt-3 p-2 bg-yellow-50 border-l-4 border-yellow-300 text-yellow-800 text-xs flex items-start">
+                    <CalendarIcon className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-semibold">Pedido Agendado</p>
+                        <p>Entregar entre {formatTime(order.deliveryWindow.start)} - {formatTime(order.deliveryWindow.end)}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-4 flex justify-between items-end">
                 <p className="text-lg font-semibold text-gray-900">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}

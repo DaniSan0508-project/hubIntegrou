@@ -1,6 +1,6 @@
 // services/api.ts
 // FIX: Import NotFoundItem type to be used in the new getNotFoundItems method.
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, IfoodItem, NotFoundItem } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, NotFoundItem } from '../types';
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
@@ -172,6 +172,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
   const apiOrder = apiEntry.order || apiEntry || {};
   const apiConsumer = apiEntry.consumer || {};
   const virtualBag = apiOrder.ifood?.virtual_bag;
+  const ifoodData = apiOrder.ifood || {};
 
   let items: OrderItem[] = [];
   let total: number = 0;
@@ -180,8 +181,8 @@ const transformOrderFromApi = (apiEntry: any): Order => {
   let otherFees: OrderFee[] | undefined = undefined;
   let paymentMethod: string = 'Não informado';
   let cashChangeFor: number | undefined = undefined;
-  let deliveryCode: string | undefined = apiOrder.ifood?.delivery_code;
-  let pickupCode: string | undefined = apiOrder.ifood?.pickup_code;
+  let deliveryCode: string | undefined = ifoodData.delivery_code;
+  let pickupCode: string | undefined = ifoodData.pickup_code;
   let deliveryAddress: string = apiOrder.delivery_address || 'Endereço não informado';
 
   if (virtualBag) {
@@ -315,6 +316,12 @@ const transformOrderFromApi = (apiEntry: any): Order => {
     subtotal: subtotal,
     deliveryFee: deliveryFee,
     otherFees: otherFees,
+    isScheduled: ifoodData.is_scheduled || false,
+    deliveryWindow: ifoodData.delivery_window ? {
+        start: ifoodData.delivery_window.start,
+        end: ifoodData.delivery_window.end,
+    } : undefined,
+    preparationStartTime: ifoodData.preparation_start_time,
   };
 };
 
@@ -712,11 +719,6 @@ export const api = {
     },
 
     // --- Product Management API ---
-    getIfoodItems: async (): Promise<IfoodItem[]> => {
-        const data = await fetchWithAuth('/hub/ifood/items');
-        return data?.data?.items || [];
-    },
-
     // FIX: Add getNotFoundItems to resolve missing property error in NotFoundProductsModal.
     getNotFoundItems: async (page: number): Promise<{ items: NotFoundItem[], pagination: Pagination }> => {
         const params = new URLSearchParams({
