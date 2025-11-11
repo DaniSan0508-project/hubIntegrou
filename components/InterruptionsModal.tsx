@@ -69,7 +69,7 @@ const InterruptionsModal: React.FC<InterruptionsModalProps> = ({ isOpen, onClose
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Ex: Feriado, Manutenção"
-                                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                                 required
                             />
                         </div>
@@ -81,7 +81,7 @@ const InterruptionsModal: React.FC<InterruptionsModalProps> = ({ isOpen, onClose
                                     id="start"
                                     value={start}
                                     onChange={(e) => setStart(e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                                     required
                                 />
                             </div>
@@ -92,7 +92,7 @@ const InterruptionsModal: React.FC<InterruptionsModalProps> = ({ isOpen, onClose
                                     id="end"
                                     value={end}
                                     onChange={(e) => setEnd(e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                                     required
                                 />
                             </div>

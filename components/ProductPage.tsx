@@ -20,21 +20,21 @@ const FilterPanel: React.FC<{
                 placeholder="Nome do Produto"
                 value={tempFilters.name || ''}
                 onChange={(e) => onFilterChange({ ...tempFilters, name: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             />
             <input
                 type="text"
                 placeholder="Cód. de Barras"
                 value={tempFilters.barcode || ''}
                 onChange={(e) => onFilterChange({ ...tempFilters, barcode: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             />
         </div>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <select
                 value={tempFilters.status || ''}
                 onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as ProductFilters['status'] })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             >
                 <option value="">Todos Status</option>
                 <option value="active">Ativo</option>
@@ -45,7 +45,7 @@ const FilterPanel: React.FC<{
                 placeholder="Preço (ex: 25.50)"
                 value={tempFilters.price || ''}
                 onChange={(e) => onFilterChange({ ...tempFilters, price: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,7 +56,7 @@ const FilterPanel: React.FC<{
                     id="dateFrom"
                     value={tempFilters.dateFrom || ''}
                     onChange={(e) => onFilterChange({ ...tempFilters, dateFrom: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                 />
             </div>
             <div>
@@ -66,7 +66,7 @@ const FilterPanel: React.FC<{
                     id="dateTo"
                     value={tempFilters.dateTo || ''}
                     onChange={(e) => onFilterChange({ ...tempFilters, dateTo: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                 />
             </div>
         </div>

@@ -52,9 +52,9 @@ const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAd
         onAdd(productToAdd);
     };
     
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleGenericChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const isNumberField = ['price', 'stock', 'promotion_price'].includes(name);
+        const isNumberField = ['stock'].includes(name);
 
         setProduct(prev => ({
             ...prev,
@@ -62,24 +62,51 @@ const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAd
         }));
     };
 
+    const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        // Get only digits from the input
+        const digits = value.replace(/\D/g, '');
+        if (digits === '') {
+            setProduct(prev => ({ ...prev, [name]: undefined }));
+            return;
+        }
+        // Convert string of cents to a float value
+        const numberValue = Number(digits) / 100;
+        
+        setProduct(prev => ({
+            ...prev,
+            [name]: numberValue
+        }));
+    };
+
+    const formatToBRL = (value: number | undefined): string => {
+        if (value === undefined || isNaN(value)) {
+            return '';
+        }
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        }).format(value);
+    };
+
     return (
         <form onSubmit={handleSubmit} className="p-4 border rounded-lg bg-gray-50 space-y-4">
             <h3 className="font-semibold text-gray-700">2. Adicionar Produto Manualmente</h3>
             <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
-                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" required />
+                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
+                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="number" name="price" placeholder="Preço (DE)" value={product.price ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="0.01" required />
-                    <input type="number" name="promotion_price" placeholder="Preço Promocional (POR)" value={product.promotion_price ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="0.01" />
+                    <input type="text" name="price" placeholder="Preço" value={formatToBRL(product.price)} onChange={handleCurrencyChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
+                    <input type="text" name="promotion_price" placeholder="Preço Promocional" value={formatToBRL(product.promotion_price)} onChange={handleCurrencyChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" />
                 </div>
                 <div className="grid grid-cols-1">
-                    <input type="number" name="stock" placeholder="Estoque" value={product.stock ?? ''} onChange={handleChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" min="0" step="1" required />
+                    <input type="number" name="stock" placeholder="Estoque" value={product.stock ?? ''} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" min="0" step="1" required />
                 </div>
             </div>
              <div className="flex items-center justify-between pt-4">
-                <select name="status" value={product.status} onChange={handleChange} className="px-3 py-2 bg-white border border-gray-300 rounded-lg">
+                <select name="status" value={product.status} onChange={handleGenericChange} className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900">
                     <option value="active">Ativo</option>
                     <option value="inactive">Inativo</option>
                 </select>

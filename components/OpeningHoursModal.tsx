@@ -102,7 +102,7 @@ const OpeningHoursModal: React.FC<OpeningHoursModalProps> = ({ isOpen, onClose, 
                                 value={hours[day]?.start || ''}
                                 onChange={(e) => handleTimeChange(day, 'start', e.target.value)}
                                 disabled={!hours[day]?.enabled}
-                                className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-200"
+                                className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-200 text-gray-900"
                             />
                             <span className="text-gray-500">-</span>
                             <input
@@ -110,7 +110,7 @@ const OpeningHoursModal: React.FC<OpeningHoursModalProps> = ({ isOpen, onClose, 
                                 value={hours[day]?.end || ''}
                                 onChange={(e) => handleTimeChange(day, 'end', e.target.value)}
                                 disabled={!hours[day]?.enabled}
-                                className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-200"
+                                className="px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-200 text-gray-900"
                             />
                         </div>
                     ))}
