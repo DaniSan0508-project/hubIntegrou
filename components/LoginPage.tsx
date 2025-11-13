@@ -18,12 +18,26 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Client-side validation for empty fields
+    if (!email.trim() || !password.trim()) {
+      setError('Por favor, preencha o e-mail e a senha.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const user = await api.login(email, password, rememberMe);
       onLogin(user);
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro.');
+      // More user-friendly error messages
+      if (err.message && err.message.includes('Failed to fetch')) {
+        setError('Falha na conexão. Verifique sua internet e tente novamente.');
+      } else if (err.message && (err.message.toLowerCase().includes('credenciais inválidas') || err.message.toLowerCase().includes('invalid credentials'))) {
+        setError('E-mail ou senha incorretos. Por favor, verifique seus dados.');
+      } else {
+        setError(err.message || 'Ocorreu um erro inesperado. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }

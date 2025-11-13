@@ -18,33 +18,46 @@ const formatCurrency = (value: number) =>
 interface ManualAddFormProps {
     product: Partial<ProductToAdd>;
     setProduct: React.Dispatch<React.SetStateAction<Partial<ProductToAdd>>>;
-    onAdd: (product: ProductToAdd) => boolean;
+    onAdd: (product: ProductToAdd) => void;
+    syncQueue: ProductToAdd[];
 }
 
-const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAdd }) => {
+const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAdd, syncQueue }) => {
+    const [error, setError] = useState<string | null>(null);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         
-        const { price, promotion_price } = product;
+        const { barcode, name, price, promotion_price, stock } = product;
 
-        if (!product.barcode || !product.name) {
-            alert("Código de Barras e Nome são obrigatórios.");
+        // Enhanced validation for required fields
+        if (!barcode?.trim() || !name?.trim() || price === undefined || stock === undefined) {
+            setError("Por favor, preencha todos os campos obrigatórios (Barras, Nome, Preço, Estoque).");
             return;
         }
-        if ((price ?? -1) < 0 || (product.stock ?? -1) < 0) {
-            alert("Preço e Estoque não podem ser negativos.");
+
+        if (syncQueue.some(p => p.barcode === barcode.trim())) {
+            setError(`Produto com código de barras ${barcode} já está na fila.`);
             return;
         }
-        if (promotion_price && price && promotion_price >= price) {
-            alert("O preço promocional deve ser menor que o preço normal.");
+        
+        // Price and stock are numbers, so a check for < 0 is sufficient as they are required.
+        if (price < 0 || stock < 0) {
+            setError("Preço e Estoque não podem ser negativos.");
+            return;
+        }
+
+        if (promotion_price !== undefined && promotion_price !== null && promotion_price >= price) {
+            setError("O preço promocional deve ser menor que o preço normal.");
             return;
         }
         
         const productToAdd: ProductToAdd = {
-            barcode: product.barcode,
-            name: product.name,
-            price: price ?? 0,
-            stock: product.stock ?? 0,
+            barcode: barcode.trim(),
+            name: name.trim(),
+            price: price,
+            stock: stock,
             status: product.status ?? 'active',
             promotion_price: promotion_price || null,
         };
@@ -53,6 +66,7 @@ const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAd
     };
     
     const handleGenericChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setError(null);
         const { name, value } = e.target;
         const isNumberField = ['stock'].includes(name);
 
@@ -63,6 +77,7 @@ const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAd
     };
 
     const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setError(null);
         const { name, value } = e.target;
         // Get only digits from the input
         const digits = value.replace(/\D/g, '');
@@ -94,17 +109,18 @@ const ManualAddForm: React.FC<ManualAddFormProps> = ({ product, setProduct, onAd
             <h3 className="font-semibold text-gray-700">2. Adicionar Produto Manualmente</h3>
             <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
-                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
+                    <input type="text" name="barcode" placeholder="Cód. Barras" value={product.barcode || ''} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" />
+                    <input type="text" name="name" placeholder="Nome do Produto" value={product.name || ''} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="text" name="price" placeholder="Preço" value={formatToBRL(product.price)} onChange={handleCurrencyChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" required />
+                    <input type="text" name="price" placeholder="Preço" value={formatToBRL(product.price)} onChange={handleCurrencyChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" />
                     <input type="text" name="promotion_price" placeholder="Preço Promocional" value={formatToBRL(product.promotion_price)} onChange={handleCurrencyChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" />
                 </div>
                 <div className="grid grid-cols-1">
-                    <input type="number" name="stock" placeholder="Estoque" value={product.stock ?? ''} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" min="0" step="1" required />
+                    <input type="number" name="stock" placeholder="Estoque" value={product.stock ?? ''} onChange={handleGenericChange} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900" min="0" step="1" />
                 </div>
             </div>
+            {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
              <div className="flex items-center justify-between pt-4">
                 <select name="status" value={product.status} onChange={handleGenericChange} className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900">
                     <option value="active">Ativo</option>
@@ -254,15 +270,11 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                     <ManualAddForm 
                         product={manualProduct}
                         setProduct={setManualProduct}
+                        syncQueue={syncQueue}
                         onAdd={(product) => {
-                             if (syncQueue.some(p => p.barcode === product.barcode)) {
-                                alert(`Produto com código de barras ${product.barcode} já está na fila.`);
-                                return false;
-                            }
                             setSyncQueue(prev => [...prev, product]);
                             // Reset form state after successful add
                             setManualProduct({ barcode: '', name: '', price: undefined, promotion_price: undefined, stock: undefined, status: 'active' });
-                            return true;
                          }} 
                     />
 
