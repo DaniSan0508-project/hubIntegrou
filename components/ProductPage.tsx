@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import PaginationControls from './PaginationControls';
 import SyncProductsModal from './SyncProductsModal';
-import { FilterIcon, RefreshIcon, SearchIcon, SyncIcon } from './Icons';
+import { FilterIcon, RefreshIcon, SearchIcon, SyncIcon, ChevronUpIcon, ChevronDownIcon } from './Icons';
 import ProductCard from './ProductCard';
 
 const FilterPanel: React.FC<{
@@ -100,6 +100,7 @@ const ProductPage: React.FC = () => {
     const [tempFilters, setTempFilters] = useState<ProductFilters>(defaultFilters);
     const [showFilters, setShowFilters] = useState(false);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [isIfoodSectionOpen, setIsIfoodSectionOpen] = useState(true);
 
     const fetchProducts = useCallback(async (appliedFilters: ProductFilters, page: number) => {
         setIsLoading(true);
@@ -151,7 +152,7 @@ const ProductPage: React.FC = () => {
     return (
         <div className="p-2 sm:p-4">
             <div className="flex justify-between items-center mb-4 px-2">
-                <h2 className="text-lg font-semibold text-gray-700">Produtos ({pagination?.total ?? 0})</h2>
+                <h2 className="text-lg font-semibold text-gray-700">Gerenciar Produtos</h2>
                 <div className="flex items-center space-x-2">
                     <button
                         onClick={() => setIsSyncModalOpen(true)}
@@ -190,24 +191,45 @@ const ProductPage: React.FC = () => {
             ) : error ? (
                 <div className="p-4 text-center text-red-500">{error}</div>
             ) : (
-                <>
-                    {products.length > 0 ? (
-                       <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                           {products.map((product) => (
-                               <ProductCard key={product.id} product={product} />
-                           ))}
-                       </ul>
-                    ) : (
-                        <p className="text-center text-gray-500 py-8">Nenhum produto encontrado.</p>
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <div 
+                        className="flex justify-between items-center cursor-pointer p-4"
+                        onClick={() => setIsIfoodSectionOpen(!isIfoodSectionOpen)}
+                        role="button"
+                        aria-expanded={isIfoodSectionOpen}
+                    >
+                        <div className="flex items-center">
+                            <img src="https://logodownload.org/wp-content/uploads/2017/05/ifood-logo-0.png" alt="iFood Logo" className="h-6 mr-3"/>
+                            <h3 className="font-semibold text-gray-800">Produtos iFood ({pagination?.total ?? 0})</h3>
+                        </div>
+                        <button className="text-gray-500 hover:text-indigo-600 p-1 rounded-full">
+                            {isIfoodSectionOpen ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
+                        </button>
+                    </div>
+
+                    {isIfoodSectionOpen && (
+                        <div className="p-4 border-t border-gray-200">
+                            {products.length > 0 ? (
+                                <>
+                                    <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        {products.map((product) => (
+                                            <ProductCard key={product.id} product={product} />
+                                        ))}
+                                    </ul>
+                                    {pagination && pagination.totalPages > 1 && (
+                                        <PaginationControls 
+                                            currentPage={pagination.currentPage}
+                                            totalPages={pagination.totalPages}
+                                            onPageChange={handlePageChange}
+                                        />
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-center text-gray-500 py-8">Nenhum produto encontrado para os filtros aplicados.</p>
+                            )}
+                        </div>
                     )}
-                    {pagination && pagination.totalPages > 1 && (
-                        <PaginationControls 
-                            currentPage={pagination.currentPage}
-                            totalPages={pagination.totalPages}
-                            onPageChange={handlePageChange}
-                        />
-                    )}
-                </>
+                </div>
             )}
             
             <SyncProductsModal 
