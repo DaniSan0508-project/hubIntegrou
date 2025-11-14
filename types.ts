@@ -62,6 +62,7 @@ export interface Order {
   paymentMethod: string;
   cashChangeFor?: number;
   deliveryProvider: 'TAKEOUT' | 'IFOOD' | 'MERCHANT' | 'UNKNOWN';
+  isIfood: boolean;
   deliveryCode?: string;
   pickupCode?: string;
   subtotal?: number;

@@ -171,6 +171,7 @@ const transformPaymentMethodName = (apiMethod?: string): string => {
 const transformOrderFromApi = (apiEntry: any): Order => {
   const apiOrder = apiEntry.order || apiEntry || {};
   const apiConsumer = apiEntry.consumer || {};
+  const isIfood = !!apiOrder.ifood;
   const virtualBag = apiOrder.ifood?.virtual_bag;
   const ifoodData = apiOrder.ifood || {};
 
@@ -310,6 +311,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
     paymentMethod: paymentMethod,
     cashChangeFor: cashChangeFor,
     deliveryProvider: deliveryProvider,
+    isIfood: isIfood,
     // new fields
     deliveryCode: deliveryCode,
     pickupCode: pickupCode,

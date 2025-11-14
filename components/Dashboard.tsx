@@ -6,7 +6,7 @@ import OrderList from './OrderList';
 import OrderDetail from './OrderDetail';
 import ProductPage from './ProductPage';
 import StorePage from './StorePage'; 
-import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon } from './Icons';
+import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon, DeliveryTruckIcon } from './Icons';
 import { api } from '../services/api';
 
 interface DashboardProps {
@@ -93,11 +93,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <header className="bg-white shadow-md p-4 flex justify-between items-center z-10 sticky top-0">
-        <div>
-            <h1 className="text-xl font-bold text-gray-800 truncate" title={user.tenant.name}>{user.tenant.name}</h1>
-            <p className="text-sm text-gray-500">Olá, {user.name}</p>
-            <div className="mt-1">
-                <StoreStatusIndicator status={storeStatus} isLoading={isStatusLoading} />
+        <div className="flex items-center">
+            <div className="bg-indigo-600 p-2 rounded-full mr-3 flex-shrink-0">
+                <DeliveryTruckIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+                <h1 className="text-xl font-bold text-gray-800 truncate" title={user.tenant.name}>{user.tenant.name}</h1>
+                <p className="text-sm text-gray-500">Olá, {user.name}</p>
+                <div className="mt-1">
+                    <StoreStatusIndicator status={storeStatus} isLoading={isStatusLoading} />
+                </div>
             </div>
         </div>
         <button onClick={onLogout} className="text-gray-500 hover:text-red-500" aria-label="Sair">

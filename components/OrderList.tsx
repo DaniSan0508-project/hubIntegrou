@@ -80,9 +80,16 @@ const OrderCard: React.FC<{
             <div className="flex justify-between items-start">
                 <div>
                     <p className="font-bold text-gray-800">{order.customerName}</p>
-                    <p className="text-sm text-gray-500">{order.displayId}</p>
+                     <div className="flex items-center space-x-2 mt-1">
+                        <p className="text-sm text-gray-500">{order.displayId}</p>
+                        {order.isIfood && (
+                            <img src="https://logodownload.org/wp-content/uploads/2017/05/ifood-logo-0.png" alt="Pedido iFood" className="w-12 h-auto" />
+                        )}
+                    </div>
                 </div>
-                <StatusBadge order={order} />
+                <div className="flex items-center space-x-2">
+                    <StatusBadge order={order} />
+                </div>
             </div>
 
             {order.isScheduled && order.deliveryWindow && (
