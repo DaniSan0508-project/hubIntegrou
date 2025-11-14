@@ -14,6 +14,17 @@ const FilterPanel: React.FC<{
     onClear: () => void;
 }> = ({ tempFilters, onFilterChange, onApply, onClear }) => (
      <div className="p-4 bg-white rounded-lg shadow mb-4 border space-y-4">
+        <div>
+             <label className="flex items-center text-sm text-gray-500 cursor-not-allowed">
+                <input
+                    type="checkbox"
+                    checked
+                    disabled
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="ml-2 font-medium">Produtos iFood</span>
+            </label>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
                 type="text"

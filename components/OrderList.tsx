@@ -162,6 +162,18 @@ const FilterPanel: React.FC<{
     return (
         <div className="p-4 bg-white rounded-lg shadow mb-4 border space-y-4">
             <div>
+                 <label className="flex items-center text-sm text-gray-500 cursor-not-allowed">
+                    <input
+                        type="checkbox"
+                        checked
+                        disabled
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="ml-2 font-medium">Pedidos iFood</span>
+                </label>
+            </div>
+
+            <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                 <input
                     type="text"
