@@ -185,35 +185,19 @@ const FilterPanel: React.FC<{
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                        id="status"
-                        value={tempFilters.status || ''}
-                        onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as OrderStatus | '' })}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-                    >
-                        <option value="">Todos Status</option>
-                        {Object.entries(ORDER_STATUS_MAP).map(([statusKey, { text }]) => (
-                        <option key={statusKey} value={statusKey}>{text}</option> 
-                        ))}
-                    </select>
-                </div>
-                 <div>
-                    <label htmlFor="perPage" className="block text-sm font-medium text-gray-700 mb-1">Itens por Página</label>
-                    <select
-                        id="perPage"
-                        value={tempFilters.perPage || 10}
-                        onChange={(e) => onFilterChange({ ...tempFilters, perPage: parseInt(e.target.value, 10) })}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-                    >
-                        <option value="10">10 por página</option>
-                        <option value="25">25 por página</option>
-                        <option value="50">50 por página</option>
-                        <option value="100">100 por página</option>
-                    </select>
-                </div>
+            <div>
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                    id="status"
+                    value={tempFilters.status || ''}
+                    onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as OrderStatus | '' })}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                >
+                    <option value="">Todos Status</option>
+                    {Object.entries(ORDER_STATUS_MAP).map(([statusKey, { text }]) => (
+                    <option key={statusKey} value={statusKey}>{text}</option> 
+                    ))}
+                </select>
             </div>
 
              <div>
@@ -500,29 +484,46 @@ const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
         <audio ref={audioRef} src={NOTIFICATION_SOUND_URL} preload="auto" />
         <SalesAnalytics />
 
-        <div className="flex justify-between items-center mb-4 px-2 mt-4">
-            <h2 className="text-lg font-semibold text-gray-700">Pedidos ({pagination?.total ?? orders.length})</h2>
-            <div className="flex items-center space-x-2">
-                <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50"
-                    aria-label={isMuted ? "Ativar som de notificação" : "Desativar som de notificação"}
-                >
-                    {isMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
-                </button>
-                <button 
-                    onClick={() => {
-                        setTempFilters(filters);
-                        setShowFilters(!showFilters)
-                    }} 
-                    className={`${isFilterActive ? 'text-indigo-600' : 'text-gray-500'} hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50`} 
-                    aria-label="Filtrar pedidos"
-                >
-                    <FilterIcon />
-                </button>
-                <button onClick={handleRefresh} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar pedidos">
-                    <RefreshIcon className={isPollingActive ? 'animate-pulse' : ''} />
-                </button>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 px-2 mt-4">
+            <h2 className="text-lg font-semibold text-gray-700 self-start sm:self-center">Pedidos ({pagination?.total ?? orders.length})</h2>
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+                <div className="flex-grow sm:flex-grow-0">
+                    <select
+                        id="perPage"
+                        aria-label="Itens por página"
+                        value={filters.perPage || 10}
+                        onChange={(e) => setFilters(prev => ({ ...prev, perPage: parseInt(e.target.value, 10), page: 1 }))}
+                        className="w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                    >
+                        <option value="10">10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                    </select>
+                </div>
+
+                <div className="flex items-center space-x-1">
+                    <button
+                        onClick={() => setIsMuted(!isMuted)}
+                        className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50"
+                        aria-label={isMuted ? "Ativar som de notificação" : "Desativar som de notificação"}
+                    >
+                        {isMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setTempFilters(filters);
+                            setShowFilters(!showFilters)
+                        }} 
+                        className={`${isFilterActive ? 'text-indigo-600' : 'text-gray-500'} hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50`} 
+                        aria-label="Filtrar pedidos"
+                    >
+                        <FilterIcon />
+                    </button>
+                    <button onClick={handleRefresh} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar pedidos">
+                        <RefreshIcon className={isPollingActive ? 'animate-pulse' : ''} />
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -565,7 +566,7 @@ const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
         )}
        
 
-        {!isLoading && pagination && pagination.totalPages > 1 && (
+        {!isLoading && pagination && (
             <PaginationControls 
                 currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
