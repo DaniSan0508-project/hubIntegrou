@@ -3,7 +3,7 @@ import { Order } from '../types';
 import { api } from '../services/api';
 import StatusBadge from './StatusBadge';
 import { NEXT_ACTION_MAP } from '../constants';
-import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon, ClipboardIcon, CalendarIcon } from './Icons';
+import { BackIcon, UserIcon, MapPinIcon, CreditCardIcon, QrCodeIcon, ClipboardIcon, CalendarIcon, DollarSignIcon } from './Icons';
 import LoadingSpinner from './LoadingSpinner';
 
 interface OrderDetailProps {
@@ -123,6 +123,8 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
   }
 
   const nextAction = NEXT_ACTION_MAP[order.status];
+  const hasCosts = order.subtotal !== undefined || (order.deliveryFee !== undefined && order.deliveryFee > 0) || (order.otherFees && order.otherFees.length > 0);
+  const otherFeesTotal = order.otherFees?.reduce((acc, fee) => acc + fee.amount, 0) || 0;
 
   return (
     <div className="bg-gray-50 min-h-full">
@@ -191,30 +193,54 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
         )}
 
         <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <h3 className="font-semibold text-gray-700 mb-3">Itens do Pedido</h3>
+          <ul className="divide-y divide-gray-200">
+            {order.items.map(item => (
+              <li key={item.uniqueId} className="py-3 flex justify-between items-start">
+                <div>
+                  <p className="font-medium text-gray-800">{item.name}</p>
+                  <p className="text-sm text-gray-500">{item.quantity} x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}</p>
+                  {item.ean && <p className="text-xs text-gray-400 font-mono mt-1">EAN: {item.ean}</p>}
+                </div>
+                <p className="font-semibold text-gray-800 text-right flex-shrink-0 ml-4">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        {hasCosts && (
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><DollarSignIcon className="mr-2 h-4 w-4" /> Valores e Taxas</h3>
+                <div className="space-y-2 text-sm">
+                    {order.subtotal !== undefined && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Subtotal dos Itens:</span>
+                            <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.subtotal)}</span>
+                        </div>
+                    )}
+                    {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Taxa de Entrega:</span>
+                            <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}</span>
+                        </div>
+                    )}
+                    {otherFeesTotal > 0 && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Outras Taxas:</span>
+                            <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(otherFeesTotal)}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
             <h3 className="font-semibold text-gray-700 mb-3 flex items-center"><CreditCardIcon className="mr-2 h-4 w-4" /> Pagamento</h3>
              <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                     <span className="text-gray-600">Método:</span>
                     <span className="font-medium text-gray-800">{order.paymentMethod}</span>
                 </div>
-                {order.subtotal !== undefined && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-600">Subtotal dos Itens:</span>
-                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.subtotal)}</span>
-                    </div>
-                )}
-                {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-600">Taxa de Entrega:</span>
-                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}</span>
-                    </div>
-                )}
-                {order.otherFees?.map((fee, index) => (
-                    <div key={index} className="flex justify-between">
-                        <span className="text-gray-600 capitalize">{fee.type.toLowerCase().replace(/_/g, ' ')}:</span>
-                        <span className="font-medium text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(fee.amount)}</span>
-                    </div>
-                ))}
                  {order.cashChangeFor && order.cashChangeFor > 0 && (
                     <div className="pt-2 space-y-2">
                         <div className="flex justify-between border-t pt-2">
@@ -232,27 +258,13 @@ const OrderDetail: React.FC<OrderDetailProps> = ({ orderId, onBack }) => {
                     </div>
                 )}
             </div>
-            <hr className="my-3"/>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center">
                 <span className="font-bold text-lg text-gray-900">Total do Pedido</span>
                 <span className="text-lg font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}</span>
             </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <h3 className="font-semibold text-gray-700 mb-3">Itens do Pedido</h3>
-          <ul className="divide-y divide-gray-200">
-            {order.items.map(item => (
-              <li key={item.uniqueId} className="py-3 flex justify-between items-start">
-                <div>
-                  <p className="font-medium text-gray-800">{item.name}</p>
-                  <p className="text-sm text-gray-500">{item.quantity} x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}</p>
-                  {item.ean && <p className="text-xs text-gray-400 font-mono mt-1">EAN: {item.ean}</p>}
-                </div>
-                <p className="font-semibold text-gray-800 text-right flex-shrink-0 ml-4">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total)}</p>
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
 
