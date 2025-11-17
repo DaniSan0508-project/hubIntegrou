@@ -7,6 +7,24 @@ import SyncProductsModal from './SyncProductsModal';
 import { FilterIcon, RefreshIcon, SearchIcon, SyncIcon, ChevronUpIcon, ChevronDownIcon } from './Icons';
 import ProductCard from './ProductCard';
 
+// Helper to format a raw numeric string (e.g., "12.50") into BRL currency format.
+const formatBRL = (value: string | undefined): string => {
+    if (!value) return '';
+    const number = parseFloat(value);
+    if (isNaN(number)) return '';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(number);
+};
+
+// Helper to parse a formatted currency string (e.g., "R$ 12,50") into a raw numeric string ("12.50").
+const parseBRL = (value: string): string => {
+    if (!value) return '';
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly === '') return '';
+    const number = parseInt(digitsOnly, 10) / 100;
+    return number.toFixed(2);
+};
+
+
 const FilterPanel: React.FC<{
     tempFilters: ProductFilters;
     onFilterChange: (filters: ProductFilters) => void;
@@ -41,44 +59,39 @@ const FilterPanel: React.FC<{
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             />
         </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select
-                value={tempFilters.status || ''}
-                onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as ProductFilters['status'] })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-            >
-                <option value="">Todos Status</option>
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-            </select>
-            <input
-                type="number"
-                placeholder="Preço (ex: 25.50)"
-                value={tempFilters.price || ''}
-                onChange={(e) => onFilterChange({ ...tempFilters, price: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-            />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div>
-                <label htmlFor="dateFrom" className="text-sm text-gray-600">De:</label>
-                <input
-                    type="date"
-                    id="dateFrom"
-                    value={tempFilters.dateFrom || ''}
-                    onChange={(e) => onFilterChange({ ...tempFilters, dateFrom: e.target.value })}
+                 <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Situação</label>
+                 <select
+                    id="status-filter"
+                    value={tempFilters.status || ''}
+                    onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as ProductFilters['status'] })}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-                />
+                >
+                    <option value="">Todas Situações</option>
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                </select>
             </div>
             <div>
-                <label htmlFor="dateTo" className="text-sm text-gray-600">Até:</label>
-                <input
-                    type="date"
-                    id="dateTo"
-                    value={tempFilters.dateTo || ''}
-                    onChange={(e) => onFilterChange({ ...tempFilters, dateTo: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Faixa de Preço</label>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="text"
+                        placeholder="Mín."
+                        value={formatBRL(tempFilters.priceFrom)}
+                        onChange={(e) => onFilterChange({ ...tempFilters, priceFrom: parseBRL(e.target.value) })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                    />
+                    <span className="text-gray-500">-</span>
+                    <input
+                        type="text"
+                        placeholder="Máx."
+                        value={formatBRL(tempFilters.priceTo)}
+                        onChange={(e) => onFilterChange({ ...tempFilters, priceTo: parseBRL(e.target.value) })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                    />
+                </div>
             </div>
         </div>
         <div className="flex justify-end space-x-3 pt-2">

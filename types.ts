@@ -132,7 +132,8 @@ export interface PaginatedProducts {
 export interface ProductFilters {
   name?: string;
   barcode?: string;
-  price?: string; 
+  priceFrom?: string;
+  priceTo?: string;
   status?: 'active' | 'inactive' | '';
   dateFrom?: string;
   dateTo?: string;

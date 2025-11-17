@@ -756,8 +756,11 @@ export const api = {
 
         if (filters.name) params.append('name', filters.name);
         if (filters.barcode) params.append('barcode', filters.barcode);
-        if (filters.price) params.append('value', filters.price);
-        if (filters.status) params.append('status', filters.status);
+        if (filters.priceFrom) params.append('value_from', filters.priceFrom);
+        if (filters.priceTo) params.append('value_to', filters.priceTo);
+        if (filters.status) {
+            params.append('status', filters.status === 'active' ? '1' : '0');
+        }
         if (filters.dateFrom) params.append('created_at_start', filters.dateFrom);
         if (filters.dateTo) params.append('created_at_end', filters.dateTo);
         if (filters.page) params.append('page', String(filters.page));
