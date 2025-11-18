@@ -1,9 +1,10 @@
+
 import React, { useState, useCallback } from 'react';
-import LoginPage from './components/LoginPage';
-import Dashboard from './components/Dashboard';
+import LoginPage from './components/auth/LoginPage';
+import Dashboard from './components/core/Dashboard';
 import { User } from './types';
 import { api } from './services/api';
-import LoadingSpinner from './components/LoadingSpinner';
+import LoadingSpinner from './components/core/LoadingSpinner';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
