@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { ProductToAdd } from '../types';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
-import { UploadIcon, TrashIcon, PlusIcon, SyncIcon } from './Icons';
+import { UploadIcon, TrashIcon, PlusIcon, DownloadIcon } from './Icons';
 import { parseProductFile } from '../services/productParser';
 
 interface SyncProductsModalProps {
@@ -355,7 +355,7 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                                 </>
                             ) : (
                                 <>
-                                    <SyncIcon className="mr-2 h-5 w-5" /> 
+                                    <DownloadIcon className="mr-2 h-5 w-5" /> 
                                     Sincronizar {syncQueue.length} Produtos
                                 </>
                             )}

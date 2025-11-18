@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import PaginationControls from './PaginationControls';
 import SyncProductsModal from './SyncProductsModal';
-import { FilterIcon, RefreshIcon, SearchIcon, SyncIcon, ChevronUpIcon, ChevronDownIcon } from './Icons';
+import { FilterIcon, RefreshIcon, SearchIcon, ChevronUpIcon, ChevronDownIcon, DownloadIcon } from './Icons';
 import ProductCard from './ProductCard';
 
 // Helper to format a raw numeric string (e.g., "12.50") into BRL currency format.
@@ -171,8 +171,8 @@ const ProductPage: React.FC = () => {
                         onClick={() => setIsSyncModalOpen(true)}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center"
                     >
-                        <SyncIcon className="mr-2 h-5 w-5" />
-                        Sincronizar
+                        <DownloadIcon className="mr-2 h-5 w-5" />
+                        Sincronizar Produtos
                     </button>
                      <button onClick={handleRefresh} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar produtos">
                         <RefreshIcon className={isLoading ? 'animate-spin' : ''} />
