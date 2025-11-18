@@ -25,8 +25,7 @@ A mobile-first application for a delivery hub system that integrates with iFood 
    `npm install`
 2. Copy the environment file:
    `cp .env.example .env.local`
-3. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-4. Run the app:
+3. Run the app:
    `npm run dev`
 
 ## Docker Configuration
