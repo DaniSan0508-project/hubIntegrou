@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5173:3000"
+    volumes:
+      # Mount the source code for live reload during development
+      - .:/app
+      # Use a separate node_modules volume to maintain dependencies
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    # Command to override the default CMD in Dockerfile to include live reload
+    command: npm run dev -- --host 0.0.0.0
+    stdin_open: true
+    tty: true
