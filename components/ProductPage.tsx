@@ -68,7 +68,7 @@ const FilterPanel: React.FC<{
                     onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as ProductFilters['status'] })}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                 >
-                    <option value="">Todas Situações</option>
+                    <option value="">Todas</option>
                     <option value="active">Ativo</option>
                     <option value="inactive">Inativo</option>
                 </select>
