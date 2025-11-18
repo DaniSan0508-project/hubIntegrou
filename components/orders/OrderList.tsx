@@ -83,7 +83,7 @@ const OrderCard: React.FC<{
                      <div className="flex items-center space-x-2 mt-1">
                         <p className="text-sm text-gray-500">{order.displayId}</p>
                         {order.isIfood && (
-                            <img src="https://seeklogo.com/images/I/ifood-logo-318959535B-seeklogo.com.png" alt="Pedido iFood" className="w-10 h-auto" />
+                            <span className="text-red-800 font-bold text-sm">iFood</span>
                         )}
                     </div>
                 </div>

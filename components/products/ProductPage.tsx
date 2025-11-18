@@ -213,7 +213,7 @@ const ProductPage: React.FC = () => {
                         aria-expanded={isIfoodSectionOpen}
                     >
                         <div className="flex items-center">
-                            <img src="https://seeklogo.com/images/I/ifood-logo-318959535B-seeklogo.com.png" alt="iFood Logo" className="h-6 mr-3"/>
+                            <h3 className="font-bold text-red-800 mr-3">iFood</h3>
                             <h3 className="font-semibold text-gray-800">Produtos iFood ({pagination?.total ?? 0})</h3>
                         </div>
                         <button className="text-gray-500 hover:text-indigo-600 p-1 rounded-full">

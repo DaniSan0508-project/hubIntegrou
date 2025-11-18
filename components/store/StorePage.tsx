@@ -103,9 +103,8 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
                     {/* iFood Card Header */}
                     <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
                         <div className="flex items-center">
-                             <img src="https://seeklogo.com/images/I/ifood-logo-318959535B-seeklogo.com.png" alt="iFood Logo" className="h-8 mr-4"/>
+                             <h3 className="font-bold text-xl text-red-800 mr-4">iFood</h3>
                              <div>
-                                <h3 className="font-bold text-xl text-gray-800">iFood</h3>
                                 <p className="text-sm text-gray-500 truncate">{user.tenant.name}</p>
                             </div>
                         </div>
