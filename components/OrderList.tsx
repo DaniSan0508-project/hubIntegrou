@@ -6,7 +6,6 @@ import { RefreshIcon, FilterIcon, ChevronRightIcon, SpeakerOnIcon, SpeakerOffIco
 import { ORDER_STATUS_MAP, NEXT_ACTION_MAP } from '../constants';
 import PaginationControls from './PaginationControls';
 import LoadingSpinner from './LoadingSpinner';
-import SalesAnalytics from './SalesAnalytics';
 
 interface OrderListProps {
   onSelectOrder: (orderId: string) => void;
@@ -489,7 +488,6 @@ const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
   return (
     <div className="p-2 sm:p-4">
         <audio ref={audioRef} src={NOTIFICATION_SOUND_URL} preload="auto" />
-        <SalesAnalytics />
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 px-2 mt-4">
             <h2 className="text-lg font-semibold text-gray-700 self-start sm:self-center">Pedidos ({pagination?.total ?? orders.length})</h2>

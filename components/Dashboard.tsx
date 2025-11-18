@@ -1,12 +1,14 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { User, Page, StoreStatus } from '../types';
 import OrderList from './OrderList';
 import OrderDetail from './OrderDetail';
 import ProductPage from './ProductPage';
 import StorePage from './StorePage'; 
-import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon, DeliveryTruckIcon } from './Icons';
+import AnalyticsPage from './AnalyticsPage';
+import { LogoutIcon, OrderIcon, ProductIcon, StoreIcon, DeliveryTruckIcon, ChartBarIcon } from './Icons';
 import { api } from '../services/api';
 
 interface DashboardProps {
@@ -85,6 +87,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         return <ProductPage />;
       case 'merchant':
         return <StorePage user={user} />; 
+      case 'analytics':
+        return <AnalyticsPage />;
       default:
         return <OrderList onSelectOrder={handleSelectOrder} />;
     }
@@ -132,6 +136,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           icon={<StoreIcon />}
           isActive={activePage === 'merchant'}
           onClick={() => { setActivePage('merchant'); handleBackToList(); }}
+        />
+        <NavButton
+          label="Análise"
+          icon={<ChartBarIcon />}
+          isActive={activePage === 'analytics'}
+          onClick={() => { setActivePage('analytics'); handleBackToList(); }}
         />
       </footer>
     </div>

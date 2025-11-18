@@ -76,7 +76,7 @@ export interface Order {
   preparationStartTime?: string;
 }
 
-export type Page = 'orders' | 'products' | 'merchant';
+export type Page = 'orders' | 'products' | 'merchant' | 'analytics';
 
 export interface Pagination {
   currentPage: number;

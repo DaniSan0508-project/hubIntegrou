@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { ProductToAdd } from '../types';
 import { api } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
-import { UploadIcon, TrashIcon, PlusIcon, DownloadIcon } from './Icons';
+import { UploadIcon, TrashIcon, PlusIcon, DownloadIcon, SearchIcon } from './Icons';
 import { parseProductFile } from '../services/productParser';
 
 interface SyncProductsModalProps {
@@ -145,6 +145,11 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
     const [error, setError] = useState<string | null>(null);
     const [isParsing, setIsParsing] = useState(false);
     
+    // State for pagination and filtering
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const ITEMS_PER_PAGE = 10;
+    
     // State for the manual add form is lifted here to be controlled externally
     const [manualProduct, setManualProduct] = useState<Partial<ProductToAdd>>({
         barcode: '',
@@ -166,6 +171,8 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
         setIsParsing(false);
         setSyncProgress(0);
         setManualProduct({ barcode: '', name: '', price: undefined, promotion_price: undefined, stock: undefined, status: 'active' });
+        setCurrentPage(1);
+        setSearchTerm('');
     }, []);
 
     const handleClose = () => {
@@ -244,6 +251,14 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
 
     if (!isOpen) return null;
 
+    // Filtering and Pagination Logic
+    const filteredProducts = syncQueue.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.barcode.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
@@ -280,6 +295,23 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
 
                     <div>
                         <h3 className="font-semibold text-gray-700 mb-2">3. Fila de Sincronização ({syncQueue.length} produtos)</h3>
+                        
+                        <div className="relative mb-2">
+                            <input
+                                type="text"
+                                placeholder="Buscar por nome ou cód. de barras..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset page on new search
+                                }}
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                            />
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <SearchIcon className="h-5 w-5 text-gray-400" />
+                            </div>
+                        </div>
+
                         <div className="border rounded-lg max-h-60 overflow-y-auto">
                             {syncQueue.length > 0 ? (
                                 <table className="w-full text-sm text-left">
@@ -291,9 +323,9 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                                             <th className="p-3 font-semibold text-gray-600 uppercase tracking-wider text-center">Ação</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white">
-                                        {syncQueue.map(p => (
-                                            <tr key={p.barcode} className="border-b last:border-b-0 even:bg-gray-50">
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {paginatedProducts.map(p => (
+                                            <tr key={p.barcode} className="hover:bg-gray-50">
                                                 <td className="p-3 text-gray-900 font-medium">{p.name}</td>
                                                 <td className="p-3 text-gray-700">
                                                     {p.promotion_price && p.promotion_price > 0 ? (
@@ -319,6 +351,27 @@ const SyncProductsModal: React.FC<SyncProductsModalProps> = ({ isOpen, onClose, 
                                 <p className="p-6 text-center text-gray-500">Adicione produtos manualmente ou importe um arquivo.</p>
                             )}
                         </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-2 px-1">
+                                <button
+                                    onClick={() => setCurrentPage(p => p - 1)}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Anterior
+                                </button>
+                                <span className="text-sm text-gray-600">
+                                    Página {currentPage} de {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Próximo
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </main>
 
