@@ -176,7 +176,7 @@ const FilterPanel: React.FC<{
                         disabled
                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span className="ml-2 font-medium">Pedidos iFood</span>
+                    <span className="ml-2 font-medium">iFood</span>
                 </label>
             </div>
 

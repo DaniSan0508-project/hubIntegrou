@@ -41,7 +41,7 @@ const FilterPanel: React.FC<{
                     disabled
                     className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="ml-2 font-medium">Produtos iFood</span>
+                <span className="ml-2 font-medium">iFood</span>
             </label>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,7 +214,7 @@ const ProductPage: React.FC = () => {
                     >
                         <div className="flex items-center">
                             <h3 className="font-bold text-red-800 mr-3">iFood</h3>
-                            <h3 className="font-semibold text-gray-800">Produtos iFood ({pagination?.total ?? 0})</h3>
+                            <h3 className="font-semibold text-gray-800">iFood ({pagination?.total ?? 0})</h3>
                         </div>
                         <button className="text-gray-500 hover:text-indigo-600 p-1 rounded-full">
                             {isIfoodSectionOpen ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
