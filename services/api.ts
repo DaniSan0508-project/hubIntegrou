@@ -89,7 +89,7 @@ const refreshToken = async (): Promise<void> => {
             refreshPromise = null;
         }
     };
-    
+
     refreshPromise = doRefresh();
     return refreshPromise;
 };
@@ -147,7 +147,7 @@ const mapApiStatusToEnum = (apiStatus?: string): OrderStatus => {
         case 'CAR':
             return OrderStatus.CAR;
         case 'CANCELLATION_IN_PROGRESS':
-             return OrderStatus.CANCELLATION_REQUESTED;
+            return OrderStatus.CANCELLATION_REQUESTED;
         default:
             console.warn(`Unknown order status received from API: "${apiStatus}". Defaulting to PLC.`);
             return OrderStatus.PLC;
@@ -169,162 +169,162 @@ const transformPaymentMethodName = (apiMethod?: string): string => {
 
 // Converts API snake_case and nested responses to frontend-friendly camelCase
 const transformOrderFromApi = (apiEntry: any): Order => {
-  const apiOrder = apiEntry.order || apiEntry || {};
-  const apiConsumer = apiEntry.consumer || {};
-  const isIfood = !!apiOrder.ifood;
-  const virtualBag = apiOrder.ifood?.virtual_bag;
-  const ifoodData = apiOrder.ifood || {};
+    const apiOrder = apiEntry.order || apiEntry || {};
+    const apiConsumer = apiEntry.consumer || {};
+    const isIfood = !!apiOrder.ifood;
+    const virtualBag = apiOrder.ifood?.virtual_bag;
+    const ifoodData = apiOrder.ifood || {};
 
-  let items: OrderItem[] = [];
-  let total: number = 0;
-  let subtotal: number | undefined = undefined;
-  let deliveryFee: number | undefined = undefined;
-  let otherFees: OrderFee[] | undefined = undefined;
-  let paymentMethod: string = 'Não informado';
-  let cashChangeFor: number | undefined = undefined;
-  let deliveryCode: string | undefined = ifoodData.delivery_code;
-  let pickupCode: string | undefined = ifoodData.pickup_code;
-  let deliveryAddress: string = apiOrder.delivery_address || 'Endereço não informado';
+    let items: OrderItem[] = [];
+    let total: number = 0;
+    let subtotal: number | undefined = undefined;
+    let deliveryFee: number | undefined = undefined;
+    let otherFees: OrderFee[] | undefined = undefined;
+    let paymentMethod: string = 'Não informado';
+    let cashChangeFor: number | undefined = undefined;
+    let deliveryCode: string | undefined = ifoodData.delivery_code;
+    let pickupCode: string | undefined = ifoodData.pickup_code;
+    let deliveryAddress: string = apiOrder.delivery_address || 'Endereço não informado';
 
-  if (virtualBag) {
-    // ---- Use virtual_bag as the source of truth ----
-    items = virtualBag.bag?.items?.map((item: any): OrderItem => ({
-        uniqueId: item.uniqueId,
-        id: item.uniqueId,
-        name: item.name,
-        quantity: item.quantity,
-        price: (item.prices?.unitValue?.value || 0) / 100,
-        total: (item.prices?.grossValue?.value || 0) / 100,
-        ean: item.ean,
-    })) || [];
+    if (virtualBag) {
+        // ---- Use virtual_bag as the source of truth ----
+        items = virtualBag.bag?.items?.map((item: any): OrderItem => ({
+            uniqueId: item.uniqueId,
+            id: item.uniqueId,
+            name: item.name,
+            quantity: item.quantity,
+            price: (item.prices?.unitValue?.value || 0) / 100,
+            total: (item.prices?.grossValue?.value || 0) / 100,
+            ean: item.ean,
+        })) || [];
 
-    subtotal = (virtualBag.bag?.prices?.grossValue?.value || 0) / 100;
-    deliveryFee = (virtualBag.operationMode?.delivery?.prices?.grossValue?.value || 0) / 100;
+        subtotal = (virtualBag.bag?.prices?.grossValue?.value || 0) / 100;
+        deliveryFee = (virtualBag.operationMode?.delivery?.prices?.grossValue?.value || 0) / 100;
 
-    otherFees = virtualBag.fees?.map((fee: any): OrderFee => {
-        const feeValue = fee.values?.[0]?.amount?.value || 0;
-        const feeType = fee.values?.[0]?.type || 'Taxa';
-        return {
-            type: feeType,
-            amount: feeValue / 100,
-        };
-    }) || [];
+        otherFees = virtualBag.fees?.map((fee: any): OrderFee => {
+            const feeValue = fee.values?.[0]?.amount?.value || 0;
+            const feeType = fee.values?.[0]?.type || 'Taxa';
+            return {
+                type: feeType,
+                amount: feeValue / 100,
+            };
+        }) || [];
 
-    const totalFromPayments = virtualBag.payment?.methods?.reduce((sum: number, method: any) => sum + (method.amount?.value || 0), 0) / 100;
-    total = totalFromPayments || (subtotal + deliveryFee + (otherFees?.reduce((sum, fee) => sum + fee.amount, 0) ?? 0));
+        const totalFromPayments = virtualBag.payment?.methods?.reduce((sum: number, method: any) => sum + (method.amount?.value || 0), 0) / 100;
+        total = totalFromPayments || (subtotal + deliveryFee + (otherFees?.reduce((sum, fee) => sum + fee.amount, 0) ?? 0));
 
-    const mainPaymentMethod = virtualBag.payment?.methods?.[0];
-    if (mainPaymentMethod) {
-        paymentMethod = transformPaymentMethodName(mainPaymentMethod.name);
-        if (mainPaymentMethod.card?.brand) {
-            paymentMethod += ` (${mainPaymentMethod.card.brand})`;
+        const mainPaymentMethod = virtualBag.payment?.methods?.[0];
+        if (mainPaymentMethod) {
+            paymentMethod = transformPaymentMethodName(mainPaymentMethod.name);
+            if (mainPaymentMethod.card?.brand) {
+                paymentMethod += ` (${mainPaymentMethod.card.brand})`;
+            }
+            if (mainPaymentMethod.name === 'CASH' && mainPaymentMethod.cash?.changeFor?.value) {
+                cashChangeFor = mainPaymentMethod.cash.changeFor.value / 100;
+            }
         }
-        if (mainPaymentMethod.name === 'CASH' && mainPaymentMethod.cash?.changeFor?.value) {
-             cashChangeFor = mainPaymentMethod.cash.changeFor.value / 100;
+
+        if (virtualBag.customer?.localizer?.code) {
+            deliveryCode = virtualBag.customer.localizer.code;
+        }
+        const pickupCodeData = virtualBag.verificationCodes?.find((code: any) => code.name === 'PICKUP_CODE');
+        if (pickupCodeData) {
+            pickupCode = pickupCodeData.value;
+        }
+
+        const addr = virtualBag.customer?.billingAddress || virtualBag.operationMode?.delivery?.destination;
+        if (addr) {
+            deliveryAddress = [addr.streetName, addr.streetNumber, addr.complement, addr.district, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ');
+        }
+
+    } else {
+        // ---- Fallback to original logic ----
+        const apiPayment = apiOrder.payment || (apiOrder.ifood && apiOrder.ifood.payment) || {};
+        const dataSource = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
+
+        items = Array.isArray(dataSource.items) ? dataSource.items.map((item: any, index: number) => {
+            const quantity = parseInt(item.quantity, 10) || 1;
+            const price = parseFloat(item.unit_price) || 0;
+            const ean = item.ean || undefined;
+            // Use EAN as a unique identifier, falling back to index for items without EAN
+            const uniqueId = ean || `${apiOrder.external_id || apiOrder.id}-${index}`;
+
+            return {
+                id: uniqueId,
+                name: item.name || `Produto (EAN: ${ean || 'N/A'})`,
+                quantity: quantity,
+                price: price,
+                total: quantity * price,
+                uniqueId: uniqueId,
+                ean: ean,
+            };
+        }) : [];
+
+        total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
+        paymentMethod = transformPaymentMethodName(apiPayment.method);
+        if (apiPayment.cash_change_for) {
+            const change = parseFloat(apiPayment.cash_change_for);
+            if (!isNaN(change) && change > 0) {
+                cashChangeFor = change;
+            }
         }
     }
 
-    if (virtualBag.customer?.localizer?.code) {
-        deliveryCode = virtualBag.customer.localizer.code;
-    }
-    const pickupCodeData = virtualBag.verificationCodes?.find((code: any) => code.name === 'PICKUP_CODE');
-    if (pickupCodeData) {
-        pickupCode = pickupCodeData.value;
-    }
-
-    const addr = virtualBag.customer?.billingAddress || virtualBag.operationMode?.delivery?.destination;
-    if (addr) {
-        deliveryAddress = [addr.streetName, addr.streetNumber, addr.complement, addr.district, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ');
-    }
-
-  } else {
-    // ---- Fallback to original logic ----
-    const apiPayment = apiOrder.payment || (apiOrder.ifood && apiOrder.ifood.payment) || {};
-    const dataSource = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
-
-    items = Array.isArray(dataSource.items) ? dataSource.items.map((item: any, index: number) => {
-        const quantity = parseInt(item.quantity, 10) || 1;
-        const price = parseFloat(item.unit_price) || 0;
-        const ean = item.ean || undefined;
-        // Use EAN as a unique identifier, falling back to index for items without EAN
-        const uniqueId = ean || `${apiOrder.external_id || apiOrder.id}-${index}`;
-
-        return {
-            id: uniqueId,
-            name: item.name || `Produto (EAN: ${ean || 'N/A'})`,
-            quantity: quantity,
-            price: price,
-            total: quantity * price,
-            uniqueId: uniqueId,
-            ean: ean,
-        };
-    }) : [];
-    
-    total = parseFloat(apiPayment.amount) || items.reduce((sum, item) => sum + item.total, 0);
-    paymentMethod = transformPaymentMethodName(apiPayment.method);
-    if (apiPayment.cash_change_for) {
-        const change = parseFloat(apiPayment.cash_change_for);
-        if (!isNaN(change) && change > 0) {
-            cashChangeFor = change;
+    // A more robust fallback for cash change. If it wasn't found in the primary paths 
+    // (e.g., virtual_bag exists but is missing payment info), check legacy locations.
+    if (cashChangeFor === undefined) {
+        const legacyPayment = apiOrder.ifood?.payment || apiOrder.payment;
+        if (legacyPayment?.cash_change_for) {
+            const change = parseFloat(legacyPayment.cash_change_for);
+            if (!isNaN(change) && change > 0) {
+                cashChangeFor = change;
+            }
         }
     }
-  }
-  
-  // A more robust fallback for cash change. If it wasn't found in the primary paths 
-  // (e.g., virtual_bag exists but is missing payment info), check legacy locations.
-  if (cashChangeFor === undefined) {
-      const legacyPayment = apiOrder.ifood?.payment || apiOrder.payment;
-      if (legacyPayment?.cash_change_for) {
-          const change = parseFloat(legacyPayment.cash_change_for);
-          if (!isNaN(change) && change > 0) {
-              cashChangeFor = change;
-          }
-      }
-  }
 
 
-  const dataSourceForStatus = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
-  const status = mapApiStatusToEnum(dataSourceForStatus.status);
+    const dataSourceForStatus = apiOrder.ifood && typeof apiOrder.ifood === 'object' ? apiOrder.ifood : apiOrder;
+    const status = mapApiStatusToEnum(dataSourceForStatus.status);
 
-  const deliveryProviderStr = (apiOrder.delivery_provider || (apiOrder.ifood && apiOrder.ifood.delivery_provider) || 'UNKNOWN').toUpperCase();
-  let deliveryProvider: Order['deliveryProvider'];
-  if (deliveryProviderStr === 'TAKEOUT') deliveryProvider = 'TAKEOUT';
-  else if (deliveryProviderStr === 'IFOOD') deliveryProvider = 'IFOOD';
-  else if (deliveryProviderStr === 'MERCHANT') deliveryProvider = 'MERCHANT';
-  else deliveryProvider = 'UNKNOWN';
+    const deliveryProviderStr = (apiOrder.delivery_provider || (apiOrder.ifood && apiOrder.ifood.delivery_provider) || 'UNKNOWN').toUpperCase();
+    let deliveryProvider: Order['deliveryProvider'];
+    if (deliveryProviderStr === 'TAKEOUT') deliveryProvider = 'TAKEOUT';
+    else if (deliveryProviderStr === 'IFOOD') deliveryProvider = 'IFOOD';
+    else if (deliveryProviderStr === 'MERCHANT') deliveryProvider = 'MERCHANT';
+    else deliveryProvider = 'UNKNOWN';
 
-  const localId = apiOrder.id?.toString();
-  if (!localId) {
-    console.error(`Order with external_id ${apiOrder.external_id} is missing a local 'id'.`);
-  }
+    const localId = apiOrder.id?.toString();
+    if (!localId) {
+        console.error(`Order with external_id ${apiOrder.external_id} is missing a local 'id'.`);
+    }
 
-  return {
-    id: apiOrder.external_id || localId || 'missing-id',
-    localId: localId || 'missing-local-id',
-    displayId: apiOrder.short_code || (apiOrder.ifood && apiOrder.ifood.short_code) || apiOrder.id?.toString() || '#',
-    customerName: apiConsumer.name || 'N/A',
-    total: total,
-    status: status,
-    createdAt: dataSourceForStatus.created_at || new Date().toISOString(),
-    items: items,
-    deliveryAddress: deliveryAddress,
-    paymentMethod: paymentMethod,
-    cashChangeFor: cashChangeFor,
-    deliveryProvider: deliveryProvider,
-    isIfood: isIfood,
-    // new fields
-    deliveryCode: deliveryCode,
-    pickupCode: pickupCode,
-    subtotal: subtotal,
-    deliveryFee: deliveryFee,
-    otherFees: otherFees,
-    isScheduled: ifoodData.is_scheduled || false,
-    deliveryWindow: ifoodData.delivery_window ? {
-        start: ifoodData.delivery_window.start,
-        end: ifoodData.delivery_window.end,
-    } : undefined,
-    preparationStartTime: ifoodData.preparation_start_time,
-  };
+    return {
+        id: apiOrder.external_id || localId || 'missing-id',
+        localId: localId || 'missing-local-id',
+        displayId: apiOrder.short_code || (apiOrder.ifood && apiOrder.ifood.short_code) || apiOrder.id?.toString() || '#',
+        customerName: apiConsumer.name || 'N/A',
+        total: total,
+        status: status,
+        createdAt: dataSourceForStatus.created_at || new Date().toISOString(),
+        items: items,
+        deliveryAddress: deliveryAddress,
+        paymentMethod: paymentMethod,
+        cashChangeFor: cashChangeFor,
+        deliveryProvider: deliveryProvider,
+        isIfood: isIfood,
+        // new fields
+        deliveryCode: deliveryCode,
+        pickupCode: pickupCode,
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        otherFees: otherFees,
+        isScheduled: ifoodData.is_scheduled || false,
+        deliveryWindow: ifoodData.delivery_window ? {
+            start: ifoodData.delivery_window.start,
+            end: ifoodData.delivery_window.end,
+        } : undefined,
+        preparationStartTime: ifoodData.preparation_start_time,
+    };
 };
 
 const transformUserFromApi = (apiResponse: any): User => {
@@ -428,15 +428,15 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<an
                 throw new Error("Sua sessão expirou. Por favor, faça login novamente.");
             }
         } else {
-             clearTokenInfo(); // Token expired and not set to remember me
-             throw new Error("Sessão expirada. Por favor, faça login novamente.");
+            clearTokenInfo(); // Token expired and not set to remember me
+            throw new Error("Sessão expirada. Por favor, faça login novamente.");
         }
     }
 
     if (!tokenInfo) {
         throw new Error("Não autenticado.");
     }
-    
+
     const headers = new Headers(options.headers);
 
     if (!headers.has('Content-Type')) {
@@ -477,8 +477,8 @@ export const api = {
         });
 
         if (!response.ok) {
-           const errorData = await response.json().catch(() => ({ message: 'Credenciais inválidas' }));
-           throw new Error(errorData.message || 'Credenciais inválidas');
+            const errorData = await response.json().catch(() => ({ message: 'Credenciais inválidas' }));
+            throw new Error(errorData.message || 'Credenciais inválidas');
         }
 
         const data = await response.json();
@@ -487,7 +487,7 @@ export const api = {
 
         if (token && expiresIn) {
             setTokenInfo(token, expiresIn);
-             if (rememberMe) {
+            if (rememberMe) {
                 localStorage.setItem(REMEMBER_ME_KEY, 'true');
             } else {
                 localStorage.removeItem(REMEMBER_ME_KEY);
@@ -513,7 +513,7 @@ export const api = {
 
     getOrders: async (filters: OrderFilters = {}): Promise<PaginatedOrders> => {
         const params = new URLSearchParams();
-        
+
         if (filters.searchTerm) {
             // If search term is all digits, assume it's a short_code search
             if (/^\d+$/.test(filters.searchTerm)) {
@@ -544,13 +544,13 @@ export const api = {
         }
         if (filters.dateTo) {
             params.append('date_to', filters.dateTo);
-        } 
+        }
         // Otherwise, use the date range presets
         else if (filters.dateRange) {
             const today = new Date();
             const endDate = new Date(today);
             let startDate: Date;
-            
+
             if (filters.dateRange === 'today') {
                 startDate = new Date(today);
             } else if (filters.dateRange === 'week') {
@@ -562,9 +562,9 @@ export const api = {
             } else if (filters.dateRange === 'month') {
                 startDate = new Date(today.getFullYear(), today.getMonth(), 1);
             } else {
-                 startDate = new Date(today); // Fallback
+                startDate = new Date(today); // Fallback
             }
-            
+
             params.append('date_from', formatDate(startDate));
             params.append('date_to', formatDate(endDate));
         }
@@ -573,7 +573,7 @@ export const api = {
         const url = `/erp/orders${queryString ? `?${queryString}` : ''}`;
 
         const data = await fetchWithAuth(url);
-        
+
         // Handle both paginated and non-paginated responses
         const ordersArray = data.orders || (Array.isArray(data) ? data : []);
 
@@ -665,7 +665,7 @@ export const api = {
         // The component will handle the state update optimistically.
         return;
     },
-    
+
     getSalesAnalytics: async (dateFrom: string, dateTo: string): Promise<SalesAnalyticsData> => {
         const params = new URLSearchParams();
         params.append('date_from', dateFrom);
@@ -674,7 +674,7 @@ export const api = {
 
         const url = `/erp/orders?${params.toString()}`;
         const data = await fetchWithAuth(url);
-        
+
         const ordersArray = data.orders || (Array.isArray(data) ? data : []);
 
         if (!Array.isArray(ordersArray)) {
@@ -690,7 +690,7 @@ export const api = {
             completed: 0,
             cancelled: 0,
         };
-        
+
         const confirmedStatuses = [OrderStatus.COM, OrderStatus.SPS, OrderStatus.SPE, OrderStatus.DSP, OrderStatus.OPA];
         const completedStatuses = [OrderStatus.CON, OrderStatus.DDCS];
         const cancelledStatuses = [OrderStatus.CAN, OrderStatus.CAR, OrderStatus.CANCELLATION_REQUESTED];
@@ -765,12 +765,12 @@ export const api = {
         if (filters.dateTo) params.append('created_at_end', filters.dateTo);
         if (filters.page) params.append('page', String(filters.page));
         if (filters.perPage) params.append('per_page', String(filters.perPage));
-        
+
         const queryString = params.toString();
         const url = `/hub/local/items${queryString ? `?${queryString}` : ''}`;
 
         const data = await fetchWithAuth(url);
-        
+
         const productsArray = data.data || [];
         const pagination = data.pagination ? transformPaginationFromApi(data.pagination) : {
             currentPage: 1,
@@ -786,7 +786,7 @@ export const api = {
     },
 
     syncProducts: async (
-        products: ProductToAdd[], 
+        products: ProductToAdd[],
         isReset: boolean,
         onProgress?: (progress: number) => void
     ): Promise<void> => {
@@ -834,15 +834,15 @@ export const api = {
         } else {
             for (let i = 0; i < totalProducts; i += BATCH_SIZE) {
                 const batch = products.slice(i, i + BATCH_SIZE);
-                 if (batch.length > 0) {
+                if (batch.length > 0) {
                     await sendBatch(batch, '/erp/products/sync');
                 }
             }
         }
     },
-    
+
     // --- Store Management API ---
-    
+
     getStoreStatus: async (): Promise<StoreStatus> => {
         const data = await fetchWithAuth('/hub/ifood/merchant/status');
         return transformStoreStatusFromApi(data);
@@ -881,7 +881,7 @@ export const api = {
         const data = await fetchWithAuth('/hub/ifood/merchant/interruptions');
         return transformInterruptionsFromApi(data);
     },
-    
+
     createInterruption: async (interruption: Omit<Interruption, 'id'>): Promise<void> => {
         await fetchWithAuth('/hub/ifood/merchant/interruptions', {
             method: 'POST',
