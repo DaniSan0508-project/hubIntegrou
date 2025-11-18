@@ -11,12 +11,11 @@ A mobile-first application for a delivery hub system that integrates with iFood 
    ```bash
    cp .env.example .env.local
    ```
-2. Set your `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Build and run the application:
+2. Build and run the application:
    ```bash
    docker-compose up
    ```
-4. Access the application at http://localhost:5173
+3. Access the application at http://localhost:5173
 
 ## Run Locally with Node.js
 
