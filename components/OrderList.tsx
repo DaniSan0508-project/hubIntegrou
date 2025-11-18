@@ -158,6 +158,13 @@ const FilterPanel: React.FC<{
             dateRange: '', // Clear preset range
         });
     };
+
+    const filterableStatuses: OrderStatus[] = [
+        OrderStatus.PLC,
+        OrderStatus.COM,
+        OrderStatus.CON,
+        OrderStatus.CAN,
+    ];
     
     return (
         <div className="p-4 bg-white rounded-lg shadow mb-4 border space-y-4">
@@ -193,9 +200,9 @@ const FilterPanel: React.FC<{
                     onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as OrderStatus | '' })}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
                 >
-                    <option value="">Todos Status</option>
-                    {Object.entries(ORDER_STATUS_MAP).map(([statusKey, { text }]) => (
-                    <option key={statusKey} value={statusKey}>{text}</option> 
+                    <option value="">Todos</option>
+                    {filterableStatuses.map((statusKey) => (
+                        <option key={statusKey} value={statusKey}>{ORDER_STATUS_MAP[statusKey].text}</option>
                     ))}
                 </select>
             </div>
