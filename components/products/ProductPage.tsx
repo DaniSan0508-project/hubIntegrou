@@ -32,9 +32,9 @@ const FilterPanel: React.FC<{
     onApply: () => void;
     onClear: () => void;
 }> = ({ tempFilters, onFilterChange, onApply, onClear }) => (
-     <div className="p-4 bg-white rounded-lg shadow mb-4 border space-y-4">
+    <div className="p-4 bg-white rounded-lg shadow mb-4 border space-y-4">
         <div>
-             <label className="flex items-center text-sm text-gray-500 cursor-not-allowed">
+            <label className="flex items-center text-sm text-gray-500 cursor-not-allowed">
                 <input
                     type="checkbox"
                     checked
@@ -60,10 +60,10 @@ const FilterPanel: React.FC<{
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
             />
         </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div>
-                 <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Situação</label>
-                 <select
+                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">Situação</label>
+                <select
                     id="status-filter"
                     value={tempFilters.status || ''}
                     onChange={(e) => onFilterChange({ ...tempFilters, status: e.target.value as ProductFilters['status'] })}
@@ -95,9 +95,31 @@ const FilterPanel: React.FC<{
                 </div>
             </div>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Faixa de Estoque</label>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="number"
+                        placeholder="Mín."
+                        value={tempFilters.stockFrom || ''}
+                        onChange={(e) => onFilterChange({ ...tempFilters, stockFrom: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                    />
+                    <span className="text-gray-500">-</span>
+                    <input
+                        type="number"
+                        placeholder="Máx."
+                        value={tempFilters.stockTo || ''}
+                        onChange={(e) => onFilterChange({ ...tempFilters, stockTo: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900"
+                    />
+                </div>
+            </div>
+        </div>
         <div className="flex justify-end space-x-3 pt-2">
             <button onClick={onClear} className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100">Limpar</button>
-            <button onClick={onApply} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"><SearchIcon className="mr-2 h-4 w-4" /> Buscar</button>
+            <button onClick={onApply} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center"><SearchIcon className="mr-2 h-4 w-4" />Aplicar</button>
         </div>
     </div>
 );
@@ -121,7 +143,7 @@ const ProductPage: React.FC = () => {
         setError(null);
         try {
             const { products: fetchedProducts, pagination: fetchedPagination } = await api.getProducts({ ...appliedFilters, page });
-            
+
             setProducts(fetchedProducts);
             setPagination(fetchedPagination);
         } catch (err: any) {
@@ -141,7 +163,7 @@ const ProductPage: React.FC = () => {
             fetchProducts(filters, newPage);
         }
     };
-    
+
     const handleApplyFilters = () => {
         setFilters(tempFilters);
         setShowFilters(false);
@@ -152,16 +174,17 @@ const ProductPage: React.FC = () => {
         setFilters(defaultFilters);
         setShowFilters(false);
     };
-    
+
     const handleSyncComplete = () => {
         fetchProducts(filters, pagination?.currentPage || 1);
         alert('Sincronização enviada com sucesso!');
     };
 
     const handleRefresh = () => {
-      fetchProducts(filters, pagination?.currentPage || 1);
+        fetchProducts(filters, pagination?.currentPage || 1);
     };
 
+    const isFilterActive = !!(filters.name || filters.barcode || filters.priceFrom || filters.priceTo || filters.stockFrom || filters.stockTo || filters.status);
 
     return (
         <div className="p-2 sm:p-4">
@@ -171,17 +194,24 @@ const ProductPage: React.FC = () => {
                     <button
                         onClick={() => setIsSyncModalOpen(true)}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center"
+                        title="Sincronizar com ERP"
                     >
                         <DownloadIcon className="mr-2 h-5 w-5" />
                         Sincronizar Produtos
                     </button>
-                     <button onClick={handleRefresh} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar produtos">
+                    <button
+                        onClick={handleRefresh}
+                        className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50"
+                        aria-label="Atualizar produtos"
+                        title="Atualizar lista"
+                    >
                         <RefreshIcon className={isLoading ? 'animate-spin' : ''} />
                     </button>
-                    <button 
-                        onClick={() => { setTempFilters(filters); setShowFilters(!showFilters) }} 
-                        className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" 
+                    <button
+                        onClick={() => { setTempFilters(filters); setShowFilters(!showFilters) }}
+                        className={`${isFilterActive ? 'text-indigo-600' : 'text-gray-500'} hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50`}
                         aria-label="Filtrar produtos"
+                        title="Filtrar produtos"
                     >
                         <FilterIcon />
                     </button>
@@ -206,15 +236,14 @@ const ProductPage: React.FC = () => {
                 <div className="p-4 text-center text-red-500">{error}</div>
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border mt-4">
-                    <div 
+                    <div
                         className="flex justify-between items-center cursor-pointer p-4"
                         onClick={() => setIsIfoodSectionOpen(!isIfoodSectionOpen)}
                         role="button"
                         aria-expanded={isIfoodSectionOpen}
                     >
                         <div className="flex items-center">
-                            <h3 className="font-bold text-red-800 mr-3">iFood</h3>
-                            <h3 className="font-semibold text-gray-800">iFood ({pagination?.total ?? 0})</h3>
+                            <h3 className="font-semibold text-gray-800"><span className="text-red-600 font-bold mr-2">iFood</span>Produtos ({pagination?.total ?? 0})</h3>
                         </div>
                         <button className="text-gray-500 hover:text-indigo-600 p-1 rounded-full">
                             {isIfoodSectionOpen ? <ChevronUpIcon className="h-5 w-5" /> : <ChevronDownIcon className="h-5 w-5" />}
@@ -231,7 +260,7 @@ const ProductPage: React.FC = () => {
                                         ))}
                                     </ul>
                                     {pagination && pagination.totalPages > 1 && (
-                                        <PaginationControls 
+                                        <PaginationControls
                                             currentPage={pagination.currentPage}
                                             totalPages={pagination.totalPages}
                                             onPageChange={handlePageChange}
@@ -245,8 +274,8 @@ const ProductPage: React.FC = () => {
                     )}
                 </div>
             )}
-            
-            <SyncProductsModal 
+
+            <SyncProductsModal
                 isOpen={isSyncModalOpen}
                 onClose={() => setIsSyncModalOpen(false)}
                 onSyncComplete={handleSyncComplete}
@@ -256,3 +285,4 @@ const ProductPage: React.FC = () => {
 };
 
 export default ProductPage;
+

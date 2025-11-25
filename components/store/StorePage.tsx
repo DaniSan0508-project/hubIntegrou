@@ -32,7 +32,7 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
     const [interruptions, setInterruptions] = useState<Interruption[]>([]);
     const [isLoading, setIsLoading] = useState({ status: true, hours: true, interruptions: true });
     const [error, setError] = useState<string | null>(null);
-    
+
     const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
     const [isInterruptionsModalOpen, setIsInterruptionsModalOpen] = useState(false);
 
@@ -90,12 +90,17 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
             <div className="flex justify-between items-center mb-4 px-2">
                 <h2 className="text-lg font-semibold text-gray-700">Gerenciamento de Integrações</h2>
                 {hasIfoodIntegration && (
-                    <button onClick={fetchData} className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50" aria-label="Atualizar dados da loja">
+                    <button
+                        onClick={fetchData}
+                        className="text-gray-500 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50"
+                        aria-label="Atualizar dados da loja"
+                        title="Atualizar dados da loja"
+                    >
                         <RefreshIcon className={Object.values(isLoading).some(Boolean) ? 'animate-spin' : ''} />
                     </button>
                 )}
             </div>
-            
+
             {error && <div className="p-4 text-center text-red-500 bg-red-50 rounded-lg">{error}</div>}
 
             {hasIfoodIntegration ? (
@@ -103,8 +108,9 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
                     {/* iFood Card Header */}
                     <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
                         <div className="flex items-center">
-                             <h3 className="font-bold text-xl text-red-800 mr-4">iFood</h3>
-                             <div>
+                            <img src="https://seeklogo.com/images/I/ifood-logo-318959535B-seeklogo.com.png" alt="iFood Logo" className="h-8 mr-4" />
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800">iFood</h3>
                                 <p className="text-sm text-gray-500 truncate">{user.tenant.name}</p>
                             </div>
                         </div>
@@ -140,14 +146,18 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
                         <div className="border-t pt-6">
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="font-semibold text-gray-700 flex items-center"><ClockIcon className="mr-2 text-gray-400" /> Horários de Funcionamento</h4>
-                                <button onClick={() => setIsHoursModalOpen(true)} className="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50 text-sm font-semibold flex items-center">
+                                <button
+                                    onClick={() => setIsHoursModalOpen(true)}
+                                    className="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-50 text-sm font-semibold flex items-center"
+                                    title="Editar horários"
+                                >
                                     <EditIcon className="mr-1 h-4 w-4" /> Editar
                                 </button>
                             </div>
-                             {isLoading.hours ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : sortedOpeningHours.length > 0 ? (
+                            {isLoading.hours ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : sortedOpeningHours.length > 0 ? (
                                 <ul className="space-y-2 mt-3">
                                     {sortedOpeningHours.map(h => (
-                                         <li key={h.dayOfWeek} className="flex justify-between items-center p-2 bg-gray-50 rounded-md text-sm">
+                                        <li key={h.dayOfWeek} className="flex justify-between items-center p-2 bg-gray-50 rounded-md text-sm">
                                             <span className="font-medium text-gray-800">{dayOfWeekMap[h.dayOfWeek]}</span>
                                             <span className="text-gray-600 font-mono">{h.start} - {h.end}</span>
                                         </li>
@@ -158,25 +168,33 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
 
                         {/* Interruptions Section */}
                         <div className="border-t pt-6">
-                             <div className="flex justify-between items-center mb-2">
+                            <div className="flex justify-between items-center mb-2">
                                 <h4 className="font-semibold text-gray-700 flex items-center"><CalendarIcon className="mr-2 text-gray-400" /> Interrupções Agendadas</h4>
-                                 <button onClick={() => setIsInterruptionsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-lg text-sm flex items-center">
-                                    <PlusCircleIcon className="mr-1 h-5 w-5"/> Agendar Nova
+                                <button
+                                    onClick={() => setIsInterruptionsModalOpen(true)}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-lg text-sm flex items-center"
+                                    title="Agendar nova interrupção"
+                                >
+                                    <PlusCircleIcon className="mr-1 h-5 w-5" /> Agendar Nova
                                 </button>
                             </div>
-                             {isLoading.interruptions ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : interruptions.length > 0 ? (
+                            {isLoading.interruptions ? <p className="text-sm text-gray-500 text-center py-4">Carregando...</p> : interruptions.length > 0 ? (
                                 <ul className="space-y-2 mt-3">
                                     {interruptions.map(i => (
-                                         <li key={i.id} className="p-3 bg-red-50 rounded-md text-sm border-l-4 border-red-300">
+                                        <li key={i.id} className="p-3 bg-red-50 rounded-md text-sm border-l-4 border-red-300">
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className="font-semibold text-red-800">{i.description}</p>
                                                     <p className="text-red-700 font-mono text-xs">
-                                                        <span className="font-medium">De:</span> {formatDateTime(i.start)} <br/>
+                                                        <span className="font-medium">De:</span> {formatDateTime(i.start)} <br />
                                                         <span className="font-medium">Até:</span> {formatDateTime(i.end)}
                                                     </p>
                                                 </div>
-                                                <button onClick={() => handleDeleteInterruption(i.id)} className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100">
+                                                <button
+                                                    onClick={() => handleDeleteInterruption(i.id)}
+                                                    className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+                                                    title="Remover interrupção"
+                                                >
                                                     <TrashIcon />
                                                 </button>
                                             </div>
@@ -192,7 +210,7 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
                     <p className="text-gray-500">Nenhuma integração iFood encontrada para esta loja.</p>
                 </div>
             )}
-            
+
             {hasIfoodIntegration && (
                 <>
                     <OpeningHoursModal
@@ -204,7 +222,7 @@ const StorePage: React.FC<StorePageProps> = ({ user }) => {
                             fetchData(); // Refresh data on success
                         }}
                     />
-                    
+
                     <InterruptionsModal
                         isOpen={isInterruptionsModalOpen}
                         onClose={() => setIsInterruptionsModalOpen(false)}

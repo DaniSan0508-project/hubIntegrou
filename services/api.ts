@@ -1,6 +1,7 @@
+
 // services/api.ts
 // FIX: Import NotFoundItem type to be used in the new getNotFoundItems method.
-import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, NotFoundItem } from '../types';
+import { Order, User, OrderStatus, OrderFilters, PaginatedOrders, Pagination, Product, PaginatedProducts, ProductFilters, ProductToAdd, StoreStatus, OpeningHour, Interruption, SalesAnalyticsData, OrderItem, OrderFee, NotFoundItem, DailyMetric } from '../types';
 
 // Use environment variable for the API base URL, with a fallback for local development.
 const BASE_URL = (process.env.VITE_API_BASE_URL || 'https://hubintegrou.sysfar.com.br') + '/api';
@@ -298,6 +299,23 @@ const transformOrderFromApi = (apiEntry: any): Order => {
         console.error(`Order with external_id ${apiOrder.external_id} is missing a local 'id'.`);
     }
 
+    let benefit = undefined;
+    const benefitSource = apiOrder.benefit || virtualBag?.benefit; // Check both apiOrder and virtual_bag for benefits
+
+    if (benefitSource) {
+        benefit = {
+            benefits: Array.isArray(benefitSource.benefits) ?
+                benefitSource.benefits.map((benefitItem: any) => ({
+                    sponsorships: Array.isArray(benefitItem.sponsorships) ?
+                        benefitItem.sponsorships.map((sponsorship: any) => ({
+                            amount: {
+                                value: sponsorship.amount?.value || 0
+                            }
+                        })) : []
+                })) : []
+        };
+    }
+
     return {
         id: apiOrder.external_id || localId || 'missing-id',
         localId: localId || 'missing-local-id',
@@ -324,6 +342,7 @@ const transformOrderFromApi = (apiEntry: any): Order => {
             end: ifoodData.delivery_window.end,
         } : undefined,
         preparationStartTime: ifoodData.preparation_start_time,
+        benefit: benefit,
     };
 };
 
@@ -684,7 +703,11 @@ export const api = {
 
         const orders: Order[] = ordersArray.map(transformOrderFromApi);
 
-        const dailySalesMap = new Map<string, number>();
+        // Helper to get YYYY-MM-DD key from date string
+        const getDateKey = (isoString: string) => isoString.replace(' ', 'T').split('T')[0];
+
+        const dailyMetricsMap = new Map<string, DailyMetric>();
+
         const statusCounts = {
             confirmed: 0,
             completed: 0,
@@ -696,26 +719,39 @@ export const api = {
         const cancelledStatuses = [OrderStatus.CAN, OrderStatus.CAR, OrderStatus.CANCELLATION_REQUESTED];
 
         orders.forEach(order => {
+            const dateKey = getDateKey(order.createdAt);
+
+            // Initialize daily metric if not exists
+            if (!dailyMetricsMap.has(dateKey)) {
+                dailyMetricsMap.set(dateKey, {
+                    date: dateKey,
+                    totalValue: 0,
+                    countConfirmed: 0,
+                    countCompleted: 0,
+                    countCancelled: 0,
+                });
+            }
+
+            const metric = dailyMetricsMap.get(dateKey)!;
+
             if (confirmedStatuses.includes(order.status)) {
                 statusCounts.confirmed++;
+                metric.countConfirmed++;
             } else if (completedStatuses.includes(order.status)) {
                 statusCounts.completed++;
-                // Aggregate daily sales only for completed orders
-                const orderDate = new Date(order.createdAt.replace(' ', 'T')).toISOString().split('T')[0]; // YYYY-MM-DD
-                const currentTotal = dailySalesMap.get(orderDate) || 0;
-                dailySalesMap.set(orderDate, currentTotal + order.total);
+                metric.countCompleted++;
+                metric.totalValue += order.total; // Accumulate value only for completed orders
             } else if (cancelledStatuses.includes(order.status)) {
                 statusCounts.cancelled++;
+                metric.countCancelled++;
             }
         });
 
-        const dailySales = Array.from(dailySalesMap.entries()).map(([date, total]) => ({
-            date,
-            total,
-        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const dailyMetrics = Array.from(dailyMetricsMap.values())
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         return {
-            dailySales,
+            dailyMetrics,
             statusCounts,
         };
     },
@@ -758,6 +794,8 @@ export const api = {
         if (filters.barcode) params.append('barcode', filters.barcode);
         if (filters.priceFrom) params.append('value_from', filters.priceFrom);
         if (filters.priceTo) params.append('value_to', filters.priceTo);
+        if (filters.stockFrom) params.append('stock_from', filters.stockFrom);
+        if (filters.stockTo) params.append('stock_to', filters.stockTo);
         if (filters.status) {
             params.append('status', filters.status === 'active' ? '1' : '0');
         }
@@ -893,5 +931,69 @@ export const api = {
         await fetchWithAuth(`/hub/ifood/merchant/interruptions/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    requestPasswordReset: async (email: string): Promise<void> => {
+        const response = await fetch(`${BASE_URL}/portal/password/forgot`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({
+                message: 'Falha ao solicitar redefinição de senha'
+            }));
+            throw new Error(errorData.message || 'Falha ao solicitar redefinição de senha');
+        }
+
+        try {
+            const data = await response.json();
+            if (data.message) {
+                console.log('Password reset request successful:', data.message);
+            }
+        } catch (e) {
+            console.log('Password reset request submitted successfully');
+        }
+    },
+
+    resetPassword: async (
+        token: string,
+        email: string,
+        password: string,
+        passwordConfirmation: string
+    ): Promise<void> => {
+        const response = await fetch(`${BASE_URL}/portal/password/reset`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                token,
+                email,
+                password,
+                password_confirmation: passwordConfirmation
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({
+                message: 'Falha ao redefinir senha'
+            }));
+            throw new Error(errorData.message || 'Falha ao redefinir senha');
+        }
+
+        try {
+            const data = await response.json();
+            if (data.message) {
+                console.log('Password reset successful:', data.message);
+            }
+        } catch (e) {
+            console.log('Password reset completed successfully');
+        }
     },
 };
