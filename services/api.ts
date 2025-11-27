@@ -517,6 +517,69 @@ export const api = {
         }
     },
 
+    registerPortalUser: async (userData: {
+        cnpj: string;
+        name: string;
+        email: string;
+        password: string;
+        password_confirmation: string;
+    }): Promise<any> => {
+        // Remove a formatação do CNPJ (pontos, barras e traços)
+        const cleanCnpj = userData.cnpj.replace(/\D/g, '');
+
+        // Valida se tem 14 dígitos após limpar
+        if (cleanCnpj.length !== 14) {
+            throw new Error('CNPJ deve conter 14 dígitos');
+        }
+
+        const payload = {
+            ...userData,
+            cnpj: cleanCnpj // Envia apenas os números
+        };
+
+        const response = await fetch(`${BASE_URL}/portal/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({
+                message: 'Erro no registro'
+            }));
+
+            // Tratamento específico para erro de email único
+            if (errorData.errors && errorData.errors.email && errorData.errors.email.includes('validation.unique')) {
+                throw new Error('Email já cadastrado');
+            }
+
+            // Tratamento para outros erros de validação
+            if (errorData.errors) {
+                // Pega o primeiro erro de validação
+                const firstError = Object.values(errorData.errors)[0];
+                if (Array.isArray(firstError) && firstError.length > 0) {
+                    throw new Error(firstError[0]);
+                }
+            }
+
+            throw new Error(errorData.error || errorData.message || 'Erro no registro');
+        }
+
+        const data = await response.json();
+
+        // Se o registro for bem-sucedido, salva o token automaticamente
+        if (data.token && data.expires_in) {
+            setTokenInfo(data.token, data.expires_in);
+            // Por padrão, define rememberMe como true no registro
+            localStorage.setItem(REMEMBER_ME_KEY, 'true');
+        }
+
+        return data;
+    },
+
     logout: () => {
         clearTokenInfo();
         return Promise.resolve();
