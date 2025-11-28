@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the source code for live reload during development
+      - .:/app
+      # Use a separate node_modules volume to maintain dependencies
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --host 0.0.0.0
+    stdin_open: true
+    tty: true
+
