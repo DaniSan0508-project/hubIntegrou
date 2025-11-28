@@ -524,17 +524,15 @@ export const api = {
         password: string;
         password_confirmation: string;
     }): Promise<any> => {
-        // Remove a formatação do CNPJ (pontos, barras e traços)
         const cleanCnpj = userData.cnpj.replace(/\D/g, '');
 
-        // Valida se tem 14 dígitos após limpar
         if (cleanCnpj.length !== 14) {
             throw new Error('CNPJ deve conter 14 dígitos');
         }
 
         const payload = {
             ...userData,
-            cnpj: cleanCnpj // Envia apenas os números
+            cnpj: cleanCnpj
         };
 
         const response = await fetch(`${BASE_URL}/portal/register`, {
@@ -554,6 +552,10 @@ export const api = {
             // Tratamento específico para erro de email único
             if (errorData.errors && errorData.errors.email && errorData.errors.email.includes('validation.unique')) {
                 throw new Error('Email já cadastrado');
+            }
+
+            if (errorData.errors && errorData.errors.password && errorData.errors.password[0] === 'validation.min.string') {
+                throw new Error('Senha deve ter 8 dígitos');
             }
 
             // Tratamento para outros erros de validação
